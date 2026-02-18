@@ -1,6 +1,6 @@
 # Firebase Frontend Deployment Guide
 
-This guide explains how to deploy the Dok2u Multi Agent frontend to Firebase Hosting.
+This guide explains how to deploy the IMX Multi Agent frontend to Firebase Hosting.
 
 ## Prerequisites
 
@@ -100,12 +100,12 @@ This will start a local server at `http://localhost:5000`
 ## Project Structure
 
 ```
-dok2u-agent/
+imx-multi-agent/
 ├── static/              # Static assets (CSS, JS, images)
 │   ├── script.js
 │   ├── style.css
 │   ├── favicon.ico
-│   └── logo-dok2u.png
+│   └── logo-imx.png
 ├── templates/           # HTML templates
 │   └── index.html
 ├── public/             # Generated directory for Firebase (gitignored)
@@ -175,8 +175,8 @@ from fastapi.middleware.cors import CORSMiddleware
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        "https://dok2u-agent.web.app",
-        "https://dok2u-agent.firebaseapp.com",
+        "https://imx-multi-agent.web.app",
+        "https://imx-multi-agent.firebaseapp.com",
         "http://localhost:8080"
     ],
     allow_credentials=True,

@@ -1,6 +1,6 @@
-# Dok2u Multi-Agent 🧠
+# IMX Multi-Agent 🧠
 
-A multi-agent AI assistant platform by [Dok2U](https://dok2u.com). Features a **Document Assistant** powered by RAG (Retrieval-Augmented Generation) over your documents, and a **Translation Agent** with speech-to-text via OpenAI Whisper. Built with FastAPI, ChromaDB, and OpenAI GPT-4o-mini.
+A multi-agent AI assistant platform. Features a **Document Assistant** powered by RAG (Retrieval-Augmented Generation) over your documents, and a **Translation Agent** with speech-to-text via OpenAI Whisper. Built with FastAPI, ChromaDB, and OpenAI GPT-4o-mini.
 
 ## ✨ Features
 
@@ -19,7 +19,7 @@ A multi-agent AI assistant platform by [Dok2U](https://dok2u.com). Features a **
 ## 📁 Project Structure
 
 ```
-dok2u-agent/
+imx-multi-agent/
 ├── app.py                    # FastAPI application (chat + translation endpoints)
 ├── core/
 │   ├── query_chromadb.py     # ChromaDB vector search + LLM streaming
@@ -56,7 +56,7 @@ dok2u-agent/
 │   ├── script.js             # Frontend JS (agent switching, translation, SSE)
 │   ├── style.css             # Styles (pill selectors, responsive, dark theme)
 │   ├── config.js             # Backend URL configuration (generated)
-│   ├── logo-dok2u.png        # Dok2U logo
+│   ├── logo-imx.png          # IMX logo
 │   └── favicon.ico           # Favicon
 ├── tests/
 │   ├── test_questions.json   # Test questions for validation
@@ -83,17 +83,15 @@ dok2u-agent/
 ### 1. Clone and Navigate
 
 ```bash
-cd c:\dev\agent-factory\agents\dok2u-agent
+cd c:\dev\multi-agent
 ```
 
 ### 2. Create Virtual Environment
 
 ```powershell
-# From the agent-factory root
-cd c:\dev\agent-factory
+cd c:\dev\multi-agent
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
-cd agents\dok2u-agent
 pip install -r requirements.txt
 ```
 
@@ -145,10 +143,10 @@ Place your files in the appropriate knowledge base folder:
 
 ```powershell
 # Activate virtual environment first
-& c:\dev\agent-factory\.venv\Scripts\Activate.ps1
+.\.venv\Scripts\Activate.ps1
 
-# Navigate to the agent directory
-cd c:\dev\agent-factory\agents\dok2u-agent
+# Navigate to the project directory
+cd c:\dev\multi-agent
 
 # Index the default knowledge base (nutria)
 python scripts/index_chromadb.py
@@ -221,7 +219,7 @@ Access the API at **http://localhost:8080** (no UI, API only)
 
 ## 🤖 Agents
 
-### Assistant Nutrition (dok2u)
+### Assistant Nutrition (nutria)
 
 RAG-based assistant that answers questions using indexed documents and transcripts. Uses ChromaDB for semantic search and GPT-4o-mini for response generation with source citations.
 
@@ -430,8 +428,8 @@ This will:
 4. Deploy to Firebase Hosting
 
 **CORS Configuration**: The backend is configured to allow requests from:
-- `https://dok2u-agent.web.app`
-- `https://dok2u-agent.firebaseapp.com`
+- `https://imx-multi-agent.web.app`
+- `https://imx-multi-agent.firebaseapp.com`
 - `http://localhost:3000` (local frontend development)
 - `http://localhost:8080` (local backend-only development)
 

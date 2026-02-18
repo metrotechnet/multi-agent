@@ -1,4 +1,4 @@
-# Start Dok2u Backend Server (FastAPI)
+# Start IMX Backend Server (FastAPI)
 Write-Host "Starting Dok2u Backend Server..." -ForegroundColor Green
 Write-Host ""
 

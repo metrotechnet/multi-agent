@@ -1,6 +1,6 @@
 @echo off
 echo ====================================
-echo Deploying Dok2u Frontend to Firebase
+echo Deploying IMX Frontend to Firebase
 echo ====================================
 echo.
 

@@ -1,6 +1,6 @@
 # Knowledge Bases
 
-This directory contains all knowledge bases for the Dok2u Multi-Agent system. Each knowledge base is a separate folder containing documents, transcripts, and the corresponding ChromaDB vector database.
+This directory contains all knowledge bases for the IMX Multi-Agent system. Each knowledge base is a separate folder containing documents, transcripts, and the corresponding ChromaDB vector database.
 
 ## Structure
 
@@ -61,7 +61,7 @@ Agents like `translator` that don't require document indexing. These only need:
 
 3. **Index the documents**:
    ```bash
-   # From the dok2u-agent root directory
+   # From the imx-multi-agent root directory
    python scripts/index_chromadb.py my-new-kb extracted_texts
    
    # Or index transcripts:

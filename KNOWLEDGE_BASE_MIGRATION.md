@@ -2,13 +2,13 @@
 
 ## Overview
 
-The dok2u-agent project has been restructured to support multiple knowledge bases. This guide documents the changes and how to work with the new system.
+The imx-multi-agent project has been restructured to support multiple knowledge bases. This guide documents the changes and how to work with the new system.
 
 ## What Changed
 
 ### Before (Old Structure)
 ```
-dok2u-agent/
+imx-multi-agent/
 ├── transcripts/       # All transcripts
 ├── documents/         # All documents
 ├── extracted_texts/   # All extracted texts
@@ -17,7 +17,7 @@ dok2u-agent/
 
 ### After (New Structure)
 ```
-dok2u-agent/
+imx-multi-agent/
 └── knowledge-bases/
     ├── nutria/               # Default knowledge base
     │   ├── transcripts/

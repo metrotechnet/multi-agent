@@ -1,6 +1,6 @@
 @echo off
 echo ====================================
-echo Deploying Dok2u Multi Agent to Cloud Run
+echo Deploying IMX Multi Agent to Cloud Run
 echo ====================================
 echo.
 

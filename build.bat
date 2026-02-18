@@ -1,6 +1,6 @@
 @echo off
 echo ====================================
-echo Building Dok2u Agent (GCP Cloud Build)
+echo Building IMX Agent (GCP Cloud Build)
 echo ====================================
 echo.
 
