@@ -8,7 +8,7 @@
  */
 
 // State
-let currentAgent = 'dok2u';
+let currentAgent = 'nutria';
 
 /**
  * Display agent intro
@@ -88,18 +88,17 @@ function renderAgentComponents(langData) {
  * Switch agent
  */
 async function switchAgent(agent, userInitiated) {
-    // Normalize agent name: 'nutria' -> 'dok2u' for consistency
-    const normalizedAgent = agent === 'nutria' ? 'dok2u' : agent;
-    currentAgent = normalizedAgent;
+    // Store current agent
+    currentAgent = agent;
     
     const { loadConfig, getMainConfig, getCurrentLanguage } = window.ConfigModule;
     const { handleFocus } = window.UIUtilsModule || {};
     
     if (userInitiated) {
-        const configAgent = normalizedAgent === 'dok2u' ? 'nutria' : normalizedAgent;
-        await loadConfig(configAgent);
+        // Load config for the agent
+        await loadConfig(agent);
         
-        displayAgentIntro(configAgent);
+        displayAgentIntro(agent);
         
         const mainConfig = getMainConfig();
         const langData = mainConfig[getCurrentLanguage()] || mainConfig['fr'];

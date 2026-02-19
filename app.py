@@ -60,6 +60,35 @@ SESSION_TIMEOUT = timedelta(hours=2)
 QUESTION_LOG_PATH = PROJECT_ROOT / "question_log.json"
 question_log_lock = threading.Lock()
 
+# Agent management
+AGENTS_CONFIG_PATH = PROJECT_ROOT / "knowledge-bases" / "agents.json"
+_agents_cache = None
+
+def load_agents_config():
+    """Load and cache agents configuration"""
+    global _agents_cache
+    if _agents_cache is None:
+        try:
+            with open(AGENTS_CONFIG_PATH, 'r', encoding='utf-8') as f:
+                _agents_cache = json.load(f)
+        except Exception as e:
+            print(f"Error loading agents config: {e}")
+            _agents_cache = {"agents": {}, "default": "nutria"}
+    return _agents_cache
+
+def validate_agent_access(agent_id: str, access_key: str) -> bool:
+    """Validate agent access key"""
+    agents_config = load_agents_config()
+    agent = agents_config.get("agents", {}).get(agent_id)
+    if not agent:
+        return False
+    return agent.get("accessKey") == access_key
+
+def get_agent_by_id(agent_id: str):
+    """Get agent configuration by ID"""
+    agents_config = load_agents_config()
+    return agents_config.get("agents", {}).get(agent_id)
+
 ######################################################
 # Fonctions utilitaires
 ######################################################
@@ -369,6 +398,35 @@ async def query_agent(request: QueryRequest):
         }
     )
 
+@app.get("/api/agents")
+def get_agents():
+    """
+    Get list of available agents with public information.
+    Access keys are not included for security.
+    
+    Returns:
+        Dictionary with agents info and default agent
+    """
+    try:
+        agents_config = load_agents_config()
+        
+        # Return agents without access keys (security)
+        public_agents = {}
+        for agent_id, agent_data in agents_config.get("agents", {}).items():
+            public_agents[agent_id] = {
+                "id": agent_data.get("id"),
+                "name": agent_data.get("name"),
+                "description": agent_data.get("description"),
+                "logo": agent_data.get("logo")
+            }
+        
+        return {
+            "agents": public_agents,
+            "default": agents_config.get("default", "nutria")
+        }
+    except Exception as e:
+        return {"error": f"Error loading agents: {str(e)}"}
+
 
 def deep_merge(base_config: dict, override_config: dict) -> dict:
     """
@@ -395,12 +453,13 @@ def deep_merge(base_config: dict, override_config: dict) -> dict:
     return result
 
 @app.get("/api/get_config")
-def get_translations(agent: Optional[str] = None):
+def get_translations(agent: Optional[str] = None, access_key: Optional[str] = None):
     """
     Get configuration with optional agent-specific overrides.
     
     Args:
-        agent: Optional agent name ('nutria' or 'translator')
+        agent: Optional agent ID ('nutria', 'translator', or 'common')
+        access_key: Required encrypted access key for agent (not required for 'common')
         
     Returns:
         Configuration dictionary (merged if agent specified)
@@ -417,6 +476,17 @@ def get_translations(agent: Optional[str] = None):
         if not agent:
             return main_config
         
+        # 'common' agent doesn't require access key validation
+        if agent != 'common':
+            # Validate access key for specific agents
+            if not access_key or not validate_agent_access(agent, access_key):
+                return {"error": "invalid access key"}
+            
+            # Get agent info
+            agent_info = get_agent_by_id(agent)
+            if not agent_info:
+                return {"error": "agent not found"}
+        
         # Load agent-specific configuration
         agent_config_path = None
         # Load shared configuration
@@ -427,7 +497,8 @@ def get_translations(agent: Optional[str] = None):
         elif agent == "translator":
             agent_config_path = Path(__file__).parent / "knowledge-bases" / "translator" / "config.json"
         else:
-            # Unknown agent, return shared config
+            # Unknown agent, return error
+            return {"error": "agent not found"}
             return {"error": "agent not found"}
         
         # Load and merge agent config

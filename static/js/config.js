@@ -14,6 +14,30 @@ console.log('Using BACKEND_URL:', BACKEND_URL);
 // Global state
 let mainConfig = {};
 let currentLanguage = 'fr';
+let agentsConfig = null;
+
+// Agent access keys (base64 encoded)
+const AGENT_KEYS = {
+    'nutria': 'bnV0cmlhX2FnZW50XzIwMjQ=',
+    'translator': 'dHJhbnNsYXRvcl9hZ2VudF8yMDI0'
+};
+
+/**
+ * Load agents configuration
+ */
+async function loadAgentsConfig() {
+    if (agentsConfig) return agentsConfig;
+    
+    try {
+        const response = await fetch(`${BACKEND_URL}/api/agents`);
+        agentsConfig = await response.json();
+        console.log('Agents config loaded:', agentsConfig);
+        return agentsConfig;
+    } catch (error) {
+        console.error('Failed to load agents config:', error);
+        return { agents: {}, default: 'nutria' };
+    }
+}
 
 /**
  * Get URL parameter by name
@@ -28,9 +52,55 @@ function getUrlParameter(name) {
  */
 async function loadConfig(agent) {
     try {
-        // Load agent config
-        const configResponse = await fetch(`${BACKEND_URL}/api/get_config?agent=${agent}`);
+        // Handle 'common' config separately (no access key required)
+        if (agent === 'common') {
+            const configResponse = await fetch(`${BACKEND_URL}/api/get_config?agent=common`);
+            mainConfig = await configResponse.json();
+            
+            if (mainConfig.error) {
+                console.error('Config load error:', mainConfig.error);
+                return;
+            }
+            
+            console.log('Common config loaded:', mainConfig);
+            
+            // Language detection for common config
+            const urlLang = getUrlParameter('lang');
+            const browserLang = navigator.language || navigator.userLanguage;
+            const langCode = browserLang.startsWith('en') ? 'en' : 'fr';
+            const storedLang = localStorage.getItem('preferredLanguage');
+            
+            if (urlLang && (urlLang === 'en' || urlLang === 'fr')) {
+                currentLanguage = urlLang;
+                localStorage.setItem('preferredLanguage', urlLang);
+            } else {
+                currentLanguage = storedLang || langCode;
+                const url = new URL(window.location);
+                url.searchParams.set('lang', currentLanguage);
+                window.history.replaceState({}, '', url);
+            }
+            
+            applyConfig(currentLanguage);
+            return;
+        }
+        
+        // Get access key for specific agent
+        const accessKey = AGENT_KEYS[agent];
+        if (!accessKey) {
+            console.error(`No access key found for agent: ${agent}`);
+            return;
+        }
+        
+        // Load agent config with access key
+        const configResponse = await fetch(`${BACKEND_URL}/api/get_config?agent=${agent}&access_key=${accessKey}`);
         mainConfig = await configResponse.json();
+        
+        // Check for errors
+        if (mainConfig.error) {
+            console.error('Config load error:', mainConfig.error);
+            return;
+        }
+        
         console.log('Agent config loaded:', mainConfig);
 
         // Language detection priority: URL parameter > browser language > stored preference
@@ -180,9 +250,7 @@ function populateSuggestionCards(lang) {
                     if (agentName && typeof switchAgent === 'function') {
                         const agentSelector = document.getElementById('agent-selector');
                         if (agentSelector) {
-                            // Map nutria -> dok2u for agent selector value
-                            const selectorValue = agentName === 'nutria' ? 'dok2u' : agentName;
-                            agentSelector.value = selectorValue;
+                            agentSelector.value = agentName;
                         }
                         console.log(`Switching agent to: ${agentName}`);
                         await switchAgent(agentName, true);
@@ -252,7 +320,9 @@ function getMainConfig() {
 // Export functions for use in other modules
 window.ConfigModule = {
     BACKEND_URL,
+    AGENT_KEYS,
     loadConfig,
+    loadAgentsConfig,
     applyConfig,
     populateSuggestionCards,
     switchLanguage,
