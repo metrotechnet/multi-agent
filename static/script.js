@@ -29,11 +29,6 @@ function getUrlParameter(name) {
  */
 async function loadTranslations() {
     try {
-        // Load main config
-        const mainResponse = await fetch(`${BACKEND_URL}/api/get_config?agent=main`);
-        mainConfig = await mainResponse.json();
-        console.log('Main config loaded:', mainConfig);
-
         // Load translator config
         const translatorResponse = await fetch(`${BACKEND_URL}/api/get_config?agent=translator`);
         translatorConfig = await translatorResponse.json();
@@ -43,6 +38,8 @@ async function loadTranslations() {
         const nutriaResponse = await fetch(`${BACKEND_URL}/api/get_config?agent=nutria`);
         nutriaConfig = await nutriaResponse.json();
         console.log('Nutria config loaded:', nutriaConfig);
+
+        mainConfig = translatorConfig; // Use translator config for common translations
         
         // Language detection priority: URL parameter > browser language > stored preference
         const urlLang = getUrlParameter('lang');
@@ -65,7 +62,7 @@ async function loadTranslations() {
         }
         
         // Apply translations
-        applyTranslations(currentLanguage);
+        applyCommon(currentLanguage);
 
     } catch (error) {
         console.error('Failed to load translations:', error);
@@ -78,8 +75,8 @@ async function loadTranslations() {
 /**
  * Apply translations to all elements with data-i18n attributes
  */
-function applyTranslations(lang) {
-    const langData = translatorConfig[lang] || translatorConfig['fr'];
+function applyCommon(lang) {
+    const langData = mainConfig[lang] || mainConfig['fr'];
     
     // Update text content
     document.querySelectorAll('[data-i18n]').forEach(element => {
@@ -99,7 +96,6 @@ function applyTranslations(lang) {
         }
     });
     
-
     
     // Update title attributes
     document.querySelectorAll('[data-i18n-title]').forEach(element => {
@@ -165,7 +161,7 @@ function populateLanguageDropdown(lang) {
     const select = document.getElementById('target-language');
     if (!select) return;
     
-    const langData = translatorConfig[lang] || translatorConfig['fr'];
+    const langData = mainConfig[lang] || mainConfig['fr'];
     const languages = langData && langData.languages;
     if (!languages) return;
     
@@ -204,7 +200,7 @@ function switchLanguage(lang) {
     const url = new URL(window.location);
     url.searchParams.set('lang', lang);
     window.history.replaceState({}, '', url);
-    applyTranslations(lang);
+    applyCommon(lang);
     
     // Update language selector value
     const langSelector = document.getElementById('language-selector');
@@ -222,7 +218,7 @@ function switchLanguage(lang) {
 function updateSourceLanguageDisplay() {
     if (!sourceLanguageText) return;
     
-    const langData = translatorConfig[currentLanguage] || translatorConfig['fr'];
+    const langData = mainConfig[currentLanguage] || mainConfig['fr'];
     const languages = langData.languages || {};
     
     // Always display interface language (doesn't change with arrow direction)
@@ -235,7 +231,7 @@ function updateSourceLanguageDisplay() {
  * Get translation for a key
  */
 function t(key) {
-    const langData = translatorConfig[currentLanguage] || translatorConfig['fr'];
+    const langData = mainConfig[currentLanguage] || mainConfig['fr'];
     return getNestedValue(langData, key) || key;
 }
 
@@ -252,7 +248,7 @@ function getCurrentLanguage() {
  */
 function switchActiveConfig(agent) {
     currentAgent = agent;
-    applyTranslations(currentLanguage);
+    applyCommon(currentLanguage);
 }
 
 // ===================================
@@ -644,7 +640,7 @@ document.getElementById('about-link').addEventListener('click', (e) => {
  * Create and display legal notice popup with disclaimer text
  */
 function showLegalNotice() {
-    const langData = translatorConfig[currentLanguage] || translatorConfig['fr'];
+    const langData = mainConfig[currentLanguage] || mainConfig['fr'];
     const legalContent = langData.legal;
     let html = `<h2 style='margin-top:0;text-align:center;'>${legalContent.title}</h2>`;
     html += legalContent.content.map(line => {
@@ -668,7 +664,7 @@ function showLegalNotice() {
  * Create and display privacy policy popup
  */
 function showPrivacyPolicy() {
-    const langData = translatorConfig[currentLanguage] || translatorConfig['fr'];
+    const langData = mainConfig[currentLanguage] || mainConfig['fr'];
     const privacy = langData.privacy;
     let html = `<h2 style='margin-top:0;text-align:center;'>${privacy.title}</h2>`;
     if (privacy.lastUpdate) {
@@ -704,7 +700,7 @@ function showPrivacyPolicy() {
 
 function showAbout() {
 
-        const langData = translatorConfig[currentLanguage] || translatorConfig['fr'];
+        const langData = mainConfig[currentLanguage] || mainConfig['fr'];
         const about = langData.about || {};
         let html = `<h2 style='margin-top:0;text-align:center;'>${about.title}</h2>`;
 
@@ -1135,6 +1131,7 @@ async function handleStreamingResponse(question, contentDiv, actionsDiv) {
     let fullText = '';
     let ttsReceivedViaStream = false;
     let ttsPendingQuestionId = null;
+    let linksReceived = null; // Store links from SSE stream
 
     while (true) {
         const { done, value } = await reader.read();
@@ -1157,8 +1154,10 @@ async function handleStreamingResponse(question, contentDiv, actionsDiv) {
             } else {
                 contentDiv.textContent = fullText;
             }
-            // Fetch PMIDs in background 
-            await fetchAndDisplayPmids(contentDiv);
+            // Display links if received via stream, otherwise fetch from API
+            if (linksReceived !== null) {
+                displayLinks(contentDiv, linksReceived);
+            } 
             return { fullText, ttsReceivedViaStream };
             break;
         }
@@ -1202,6 +1201,12 @@ async function handleStreamingResponse(question, contentDiv, actionsDiv) {
                         console.log('TTS: generation started on server for', ttsPendingQuestionId);
                     }
 
+                    // Store links received via stream
+                    if (data.links !== undefined) {
+                        linksReceived = data.links;
+                        console.log('Links received via stream:', linksReceived);
+                    }
+
                     // Append new content chunk
                     if (data.chunk) {
 
@@ -1224,38 +1229,24 @@ async function handleStreamingResponse(question, contentDiv, actionsDiv) {
         }
     }
 }
-
-// Appelle l’API pour obtenir les PMIDs pertinents à la question et les affiche sous la réponse
-async function fetchAndDisplayPmids( container) {
-    try {
-        // Use sessionId and questionId if available for accurate retrieval
-        const payload = { };
-        if (window.sessionId && window.questionId) {
-            payload.session_id = window.sessionId;
-            payload.question_id = window.questionId;
-        }
-        const res = await fetch(`${BACKEND_URL}/api/pmids`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-        });
-        const data = await res.json();
-        if (data.pmids && data.pmids.length > 0) {
-            const refsDiv = document.createElement('div');
-            refsDiv.className = 'pmid-refs';
-            refsDiv.innerHTML = `<strong>Références PubMed :</strong> ` +
-                data.pmids.map(pmid => {
-                    // Extraire juste le numéro
-                    const num = pmid.replace(/[^\d]/g, '');
-                    const url = `https://google.com/search?q=${pmid}`;
-                    return `<a href="${url}" target="_blank" rel="noopener">${pmid}</a>`;
-                }).join(', ');
-            container.appendChild(refsDiv);
-        }
-    } catch (e) {
-        console.error('Erreur lors de la récupération des PMIDs', e);
-    }
+/**
+ * Display PMIDs/links in the message container
+ * @param {HTMLElement} container - The message content container
+ * @param {Array<string>} links - Array of links to display
+ */
+function displayLinks(container, links) {
+    if (!links || links.length === 0) return;
+    
+    const refsDiv = document.createElement('div');
+    refsDiv.className = 'link-refs';
+    refsDiv.innerHTML = `<strong>Références :</strong> ` +
+        links.map(link => {
+            const url = `https://google.com/search?q=${link}`;
+            return `<a href="${url}" target="_blank" rel="noopener">${link}</a>`;
+        }).join(', ');
+    container.appendChild(refsDiv);
 }
+
 
 /**
  * Clean up UI state after message completion
@@ -1880,7 +1871,7 @@ function switchAgent(agent, userInitiated) {
         chatContainer.querySelectorAll('.message, #chat-bottom-spacer').forEach(el => el.remove());
         
         // Show agent welcome message
-        const welcomeText = isTranslator ? translatorConfig[currentLanguage]?.['agents'] ?.['welcome']: nutriaConfig[currentLanguage]?.['agents'] ?.['welcome'];
+        const welcomeText = isTranslator ? mainConfig[currentLanguage]?.['agents'] ?.['welcome']: mainConfig[currentLanguage]?.['agents'] ?.['welcome'];
         const welcomeDiv = document.createElement('div');
         welcomeDiv.className = 'message assistant';
         welcomeDiv.innerHTML = `
@@ -2042,7 +2033,7 @@ async function sendTranslation() {
     console.log(`Translating from ${actualSourceLang} to ${actualTargetLang}`);
     
     // Get language names for display
-    const langData = translatorConfig[currentLanguage] || translatorConfig['fr'];
+    const langData = mainConfig[currentLanguage] || mainConfig['fr'];
     const languages = langData.languages || {};
     const sourceLangName = languages[actualSourceLang] || actualSourceLang.toUpperCase();
     const targetLangName = languages[actualTargetLang] || actualTargetLang.toUpperCase();

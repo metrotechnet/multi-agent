@@ -1,14 +1,19 @@
 # Start IMX Backend Server (FastAPI)
-Write-Host "Starting Dok2u Backend Server..." -ForegroundColor Green
+Write-Host "Starting IMX Backend Server..." -ForegroundColor Green
 Write-Host ""
 
-# Use the parent-level virtual environment that VS Code is configured to use
-$envPath = "..\..\\.venv"
+# Use local virtual environment
+$envPath = ".venv"
 
 if (-Not (Test-Path "$envPath\Scripts\python.exe")) {
-    Write-Host "ERROR: Parent virtual environment not found at $envPath" -ForegroundColor Red
-    Write-Host "Please ensure the virtual environment is set up at the agent-factory level." -ForegroundColor Yellow
-    exit 1
+    Write-Host "Virtual environment not found. Creating one..." -ForegroundColor Yellow
+    python -m venv .venv
+    if (-Not (Test-Path "$envPath\Scripts\python.exe")) {
+        Write-Host "ERROR: Failed to create virtual environment" -ForegroundColor Red
+        Write-Host "Please ensure Python is installed and accessible." -ForegroundColor Yellow
+        exit 1
+    }
+    Write-Host "Virtual environment created successfully." -ForegroundColor Green
 }
 
 Write-Host "Using virtual environment: $envPath" -ForegroundColor Cyan

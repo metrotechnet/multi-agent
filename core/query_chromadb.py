@@ -189,7 +189,7 @@ def get_collection(kb_name=None):
 
 def is_substantial_question(question):
     """
-    Vérifie si la question est suffisamment substantielle pour mériter des PMIDs.
+    Vérifie si la question est suffisamment substantielle pour mériter des liens.
     Retourne False pour les questions trop courtes ou génériques.
     """
     if not question or len(question.strip()) < 10:
@@ -200,7 +200,7 @@ def is_substantial_question(question):
     if len(words) < 3:
         return False
     
-    # Liste de phrases génériques qui ne méritent pas de PMIDs
+    # Liste de phrases génériques qui ne méritent pas de liens
     generic_phrases = [
         'pose une question',
         'aide moi',
@@ -225,16 +225,37 @@ def extract_pmids_from_text(text):
     """Extrait toutes les références PMID d'un texte."""
     return re.findall(r'PMID:\s*\d+', text)
 
-def get_pmids_from_contexts(contexts, metadatas=None):
-    """Extract PMIDs from contexts. If metadatas with 'source' info is provided,
-    look up chunk_0 of each source document to find PMIDs that may not be
-    in the matched chunks."""
-    pmids = set()
-    # First, check the matched chunks themselves
+def get_links_from_contexts(contexts, metadatas=None):
+    """Extract links from contexts and metadata.
+    
+    Priority:
+    1. Check metadatas for 'links' field (new ChromaDB format)
+    2. Extract from matched chunks text (fallback)
+    3. Look up chunk_0 of source documents (last resort)
+    """
+    links = set()
+    
+    # Priority 1: Check metadatas for direct link references (new format)
+    if metadatas:
+        for meta in metadatas:
+            if isinstance(meta, dict) and 'links' in meta and meta['links']:
+                # Links are stored as comma-separated string
+                link_list = meta['links'].split(',')
+                for link in link_list:
+                    link = link.strip()
+                    if link:
+                        links.add(f"PMID: {link}")
+    
+    # If we found links in metadata, return them immediately
+    if links:
+        return list(links)
+    
+    # Priority 2: Fallback - check the matched chunks text themselves
     for doc in contexts:
-        pmids.update(extract_pmids_from_text(doc))
-    # If metadatas available, look up chunk_0 of each unique source for PMIDs
-    if metadatas and not pmids:
+        links.update(extract_pmids_from_text(doc))
+    
+    # Priority 3: If still no links and metadatas available, look up chunk_0
+    if not links and metadatas:
         col = get_collection()
         if col:
             sources = set()
@@ -247,10 +268,11 @@ def get_pmids_from_contexts(contexts, metadatas=None):
                     results = col.get(ids=chunk0_ids, include=['documents'])
                     for doc in results.get('documents', []):
                         if doc:
-                            pmids.update(extract_pmids_from_text(doc))
+                            links.update(extract_pmids_from_text(doc))
                 except Exception as e:
-                    print(f'Error fetching chunk_0 for PMIDs: {e}')
-    return list(pmids)
+                    print(f'Error fetching chunk_0 for links: {e}')
+    
+    return list(links)
 
 def ask_question_stream(question, language="fr", timezone="UTC", locale="fr-FR", top_k=5, conversation_history=None, session=None, question_id=None):
     """Streaming version of ask_question with language support and conversation history"""
@@ -270,11 +292,11 @@ def ask_question_stream(question, language="fr", timezone="UTC", locale="fr-FR",
     # context is not available yet (need ChromaDB), so pass empty string for now
     refusal_result = validate_user_query(question, llm_call_fn=None, language=language)
     if refusal_result and refusal_result.get("decision") == "refuse":
-        # Store empty PMIDs list in session for refusal
+        # Store empty links list in session for refusal
         if session is not None and question_id is not None:
-            if 'pmids' not in session:
-                session['pmids'] = {}
-            session['pmids'][question_id] = []
+            if 'links' not in session:
+                session['links'] = {}
+            session['links'][question_id] = []
         yield "__REFUSAL__"
         yield refusal_result["answer"]
         return
@@ -308,18 +330,18 @@ def ask_question_stream(question, language="fr", timezone="UTC", locale="fr-FR",
             contexts.append(doc)
         context = "\n\n".join(contexts)
 
-        # Extraire les PMIDs du contexte (with source metadata lookup)
-        # Only extract PMIDs for substantial questions (not for generic/short questions)
-        pmids = []
+        # Extraire les liens du contexte (with source metadata lookup)
+        # Only extract links for substantial questions (not for generic/short questions)
+        links = []
         if is_substantial_question(question):
             metadatas = results.get('metadatas', [[]])[0]
-            pmids = get_pmids_from_contexts(contexts, metadatas=metadatas)
+            links = get_links_from_contexts(contexts, metadatas=metadatas)
         
-        # Save PMIDs in session if provided
+        # Save links in session if provided
         if session is not None and question_id is not None:
-            if 'pmids' not in session:
-                session['pmids'] = {}
-            session['pmids'][question_id] = pmids
+            if 'links' not in session:
+                session['links'] = {}
+            session['links'][question_id] = links
 
         # Build prompt using template from JSON
         prompt = build_prompt_from_template(language, context, question, history_text)

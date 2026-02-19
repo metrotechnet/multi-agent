@@ -9,7 +9,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from core.query_chromadb import ask_question_stream, get_collection, get_pmids_from_contexts, is_substantial_question, client
+from core.query_chromadb import ask_question_stream, get_collection, get_links_from_contexts, is_substantial_question, client
 from core.pipeline_gdrive import run_pipeline
 from core.translate import translate_text_stream, transcribe_audio_whisper, translate_audio_whisper, get_supported_languages
 from dotenv import load_dotenv
@@ -67,7 +67,7 @@ question_log_lock = threading.Lock()
 def contains_medical_disclaimer(response_text):
     """
     Détecte si la réponse contient des phrases suggérant de consulter un professionnel.
-    Retourne True si la réponse ne mérite pas de PMIDs (disclaimer médical présent).
+    Retourne True si la réponse ne mérite pas de liens (disclaimer médical présent).
     """
     if not response_text:
         return False
@@ -189,136 +189,7 @@ class TranslateRequest(BaseModel):
 ######################################################
 # Endpoints API
 ######################################################
-# Stocke les PMIDs par session/question pour une récupération ultérieure
-@app.post("/query")
-# Endpoint principal pour poser une question à l'agent et recevoir une réponse en streaming
-async def query_agent(request: QueryRequest):
-    session_id = request.session_id or str(uuid.uuid4())
-    _clean_old_sessions()
-    if session_id not in conversation_sessions:
-        conversation_sessions[session_id] = {
-            'messages': [],
-            'created_at': datetime.now(),
-            'last_activity': datetime.now(),
-            'pmids': {},  # question_id -> pmid list
-            'refusals': set(),  # question_ids that were refused
-        }
-    session = conversation_sessions[session_id]
-    # Ensure pmids dict exists for backward compatibility
-    if 'pmids' not in session:
-        session['pmids'] = {}
-    # Ensure refusals set exists for backward compatibility
-    if 'refusals' not in session:
-        session['refusals'] = set()
-    conversation_history = session['messages']
-    user_message = {
-        'role': 'user',
-        'content': request.question,
-        'timestamp': datetime.now().isoformat()
-    }
-    conversation_history.append(user_message)
-    session['last_activity'] = datetime.now()
-    question_id = str(uuid.uuid4())
-    def generate():
-        # Génère la réponse de l'assistant en streaming (SSE)
-        yield f"data: {json.dumps({'session_id': session_id, 'question_id': question_id, 'chunk': ''})}\n\n"
-        assistant_response = ""
-        is_refusal = False
-        for chunk in ask_question_stream(
-            request.question,
-            language=request.language,
-            timezone=request.timezone,
-            locale=request.locale,
-            conversation_history=conversation_history,
-            session=session,
-            question_id=question_id
-        ):
-            # Detect refusal marker
-            if chunk == "__REFUSAL__":
-                is_refusal = True
-                continue  # Don't include marker in response
-            assistant_response += chunk
-            yield f"data: {json.dumps({'chunk': chunk})}\n\n"
-        
-        # Save question and response to log (including refused ones)
-        save_question_response(question_id, request.question, assistant_response)
-        
-        # Check if response contains medical disclaimer (don't show PMIDs)
-        has_medical_disclaimer = contains_medical_disclaimer(assistant_response)
-        
-        # Mark refusal or medical disclaimer in session for PMID endpoint
-        if is_refusal or has_medical_disclaimer:
-            session.setdefault('refusals', set()).add(question_id)
-        
-        # Only add to history if not a refusal
-        if not is_refusal:
-            assistant_message = {
-                'role': 'assistant',
-                'content': assistant_response,
-                'timestamp': datetime.now().isoformat()
-            }
-            conversation_history.append(assistant_message)
-        else:
-            # Remove the user message from history since it was refused
-            conversation_history.pop()
-
-    return StreamingResponse(
-        generate(), 
-        media_type="text/event-stream",
-        headers={
-            "Cache-Control": "no-cache",
-            "X-Accel-Buffering": "no",
-            "Connection": "keep-alive",
-        }
-    )
-
-
-# Fetch PMIDs for a session/question if available, else fallback to old behavior
-@app.post("/api/pmids")
-# Endpoint pour obtenir les PMIDs pertinents à une question
-def get_pmids_api(
-    session_id: str = Body(None),
-    question_id: str = Body(None),
-    question: str = Body(None),
-    top_k: int = 5
-):
-    # Try to fetch from session memory first (PMIDs already computed during streaming)
-    if session_id and question_id:
-        session = conversation_sessions.get(session_id)
-        if session:
-            # Check if this question was refused
-            if question_id in session.get('refusals', set()):
-                return {"pmids": []}
-            
-            # Return stored PMIDs
-            if 'pmids' in session and question_id in session['pmids']:
-                return {"pmids": session['pmids'][question_id]}
-        
-    # Fallback: recompute from question if not in cache
-    if not question:
-        return {"pmids": []}
-    
-    # Don't return PMIDs for non-substantial questions
-    if not is_substantial_question(question):
-        return {"pmids": []}
-    
-    col = get_collection()
-    if col is None:
-        return {"error": "ChromaDB collection not available"}
-    
-    query_emb = client.embeddings.create(
-        model="text-embedding-3-large",
-        input=question
-    ).data[0].embedding
-    results = col.query(
-        query_embeddings=[query_emb],
-        n_results=top_k,
-        include=['documents', 'metadatas']
-    )
-    contexts = results['documents'][0] if results['documents'] and results['documents'][0] else []
-    metadatas = results['metadatas'][0] if results.get('metadatas') and results['metadatas'][0] else []
-    pmids = get_pmids_from_contexts(contexts, metadatas=metadatas)
-    return {"pmids": pmids}
+# Stocke les liens par session/question pour une récupération ultérieure
 
 @app.post("/api/add_comment")
 # Endpoint pour ajouter un commentaire à une question
@@ -412,6 +283,93 @@ def health():
     """
     return {"status": "ok"}
 
+@app.post("/query")
+# Endpoint principal pour poser une question à l'agent et recevoir une réponse en streaming
+async def query_agent(request: QueryRequest):
+    session_id = request.session_id or str(uuid.uuid4())
+    _clean_old_sessions()
+    if session_id not in conversation_sessions:
+        conversation_sessions[session_id] = {
+            'messages': [],
+            'created_at': datetime.now(),
+            'last_activity': datetime.now(),
+            'links': {},  # question_id -> link list
+            'refusals': set(),  # question_ids that were refused
+        }
+    session = conversation_sessions[session_id]
+    # Ensure links dict exists for backward compatibility
+    if 'links' not in session:
+        session['links'] = {}
+    # Ensure refusals set exists for backward compatibility
+    if 'refusals' not in session:
+        session['refusals'] = set()
+    conversation_history = session['messages']
+    user_message = {
+        'role': 'user',
+        'content': request.question,
+        'timestamp': datetime.now().isoformat()
+    }
+    conversation_history.append(user_message)
+    session['last_activity'] = datetime.now()
+    question_id = str(uuid.uuid4())
+    def generate():
+        # Génère la réponse de l'assistant en streaming (SSE)
+        yield f"data: {json.dumps({'session_id': session_id, 'question_id': question_id, 'chunk': ''})}\n\n"
+        assistant_response = ""
+        is_refusal = False
+        for chunk in ask_question_stream(
+            request.question,
+            language=request.language,
+            timezone=request.timezone,
+            locale=request.locale,
+            conversation_history=conversation_history,
+            session=session,
+            question_id=question_id
+        ):
+            # Detect refusal marker
+            if chunk == "__REFUSAL__":
+                is_refusal = True
+                continue  # Don't include marker in response
+            assistant_response += chunk
+            yield f"data: {json.dumps({'chunk': chunk})}\n\n"
+        
+        # Save question and response to log (including refused ones)
+        save_question_response(question_id, request.question, assistant_response)
+        
+        # Check if response contains medical disclaimer (don't show links)
+        has_medical_disclaimer = contains_medical_disclaimer(assistant_response)
+        
+        # Mark refusal or medical disclaimer in session for links endpoint
+        if is_refusal or has_medical_disclaimer:
+            session.setdefault('refusals', set()).add(question_id)
+        
+        # Only add to history if not a refusal
+        if not is_refusal:
+            assistant_message = {
+                'role': 'assistant',
+                'content': assistant_response,
+                'timestamp': datetime.now().isoformat()
+            }
+            conversation_history.append(assistant_message)
+        else:
+            # Remove the user message from history since it was refused
+            conversation_history.pop()
+        
+        # Send links as final SSE event (empty if refusal or medical disclaimer)
+        links = session['links'].get(question_id, []) if not (is_refusal or has_medical_disclaimer) else []
+        yield f"data: {json.dumps({'links': links})}\n\n"
+
+    return StreamingResponse(
+        generate(), 
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "X-Accel-Buffering": "no",
+            "Connection": "keep-alive",
+        }
+    )
+
+
 def deep_merge(base_config: dict, override_config: dict) -> dict:
     """
     Deep merge two configuration dictionaries.
@@ -448,6 +406,12 @@ def get_translations(agent: Optional[str] = None):
         Configuration dictionary (merged if agent specified)
     """
     try:
+        # Load the main shared configuration
+        main_config_path = Path(__file__).parent / "knowledge-bases" / "common" / "config.json"
+        main_config = {}
+        if main_config_path.exists():
+            with open(main_config_path, 'r', encoding='utf-8') as f:
+                main_config = json.load(f)
 
         # If no agent specified, return shared config
         if not agent:
@@ -455,9 +419,7 @@ def get_translations(agent: Optional[str] = None):
         
         # Load agent-specific configuration
         agent_config_path = None
-                # Load shared configuration
-        if agent == "main":
-            agent_config_path = Path(__file__).parent / "knowledge-bases" / "common" / "config.json"
+        # Load shared configuration
         if agent == "nutria":
             agent_config_path = Path(__file__).parent / "knowledge-bases" / "nutria" / "config.json"
         elif agent == "translator":
@@ -470,9 +432,10 @@ def get_translations(agent: Optional[str] = None):
         if agent_config_path and agent_config_path.exists():
             with open(agent_config_path, 'r', encoding='utf-8') as f:
                 agent_config = json.load(f)
-
+            merged_config = deep_merge(main_config, agent_config)
+            return merged_config
         
-        return agent_config
+        return {"error": "config not found"}
         
     except FileNotFoundError:
         return {"error": "config not found"}

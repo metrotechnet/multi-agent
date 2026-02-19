@@ -1225,38 +1225,6 @@ async function handleStreamingResponse(question, contentDiv, actionsDiv) {
     }
 }
 
-// Appelle l’API pour obtenir les PMIDs pertinents à la question et les affiche sous la réponse
-async function fetchAndDisplayPmids( container) {
-    try {
-        // Use sessionId and questionId if available for accurate retrieval
-        const payload = { };
-        if (window.sessionId && window.questionId) {
-            payload.session_id = window.sessionId;
-            payload.question_id = window.questionId;
-        }
-        const res = await fetch(`${BACKEND_URL}/api/pmids`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-        });
-        const data = await res.json();
-        if (data.pmids && data.pmids.length > 0) {
-            const refsDiv = document.createElement('div');
-            refsDiv.className = 'pmid-refs';
-            refsDiv.innerHTML = `<strong>Références PubMed :</strong> ` +
-                data.pmids.map(pmid => {
-                    // Extraire juste le numéro
-                    const num = pmid.replace(/[^\d]/g, '');
-                    const url = `https://google.com/search?q=${pmid}`;
-                    return `<a href="${url}" target="_blank" rel="noopener">${pmid}</a>`;
-                }).join(', ');
-            container.appendChild(refsDiv);
-        }
-    } catch (e) {
-        console.error('Erreur lors de la récupération des PMIDs', e);
-    }
-}
-
 /**
  * Clean up UI state after message completion
  * @param {HTMLElement} messageDiv - The message container to clean up
