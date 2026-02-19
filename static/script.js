@@ -27,19 +27,13 @@ function getUrlParameter(name) {
 /**
  * Load all configurations separately (main, translator, nutria)
  */
-async function loadTranslations() {
+async function loadConfig(agent) {
     try {
-        // Load translator config
-        const translatorResponse = await fetch(`${BACKEND_URL}/api/get_config?agent=translator`);
-        translatorConfig = await translatorResponse.json();
-        console.log('Translator config loaded:', translatorConfig);
+        // Load agent config
+        const configResponse = await fetch(`${BACKEND_URL}/api/get_config?agent=${agent}`);
+        mainConfig = await configResponse.json();
+        console.log('Agent config loaded:', mainConfig);
 
-        // Load nutria config
-        const nutriaResponse = await fetch(`${BACKEND_URL}/api/get_config?agent=nutria`);
-        nutriaConfig = await nutriaResponse.json();
-        console.log('Nutria config loaded:', nutriaConfig);
-
-        mainConfig = translatorConfig; // Use translator config for common translations
         
         // Language detection priority: URL parameter > browser language > stored preference
         const urlLang = getUrlParameter('lang');
@@ -62,7 +56,7 @@ async function loadTranslations() {
         }
         
         // Apply translations
-        applyCommon(currentLanguage);
+        applyConfig(currentLanguage);
 
     } catch (error) {
         console.error('Failed to load translations:', error);
@@ -75,7 +69,7 @@ async function loadTranslations() {
 /**
  * Apply translations to all elements with data-i18n attributes
  */
-function applyCommon(lang) {
+function applyConfig(lang) {
     const langData = mainConfig[lang] || mainConfig['fr'];
     
     // Update text content
@@ -135,17 +129,20 @@ function applyCommon(lang) {
     }
     
     // Update agent selector labels
-    if (typeof updateAgentSelectorLabels === 'function') {
-        updateAgentSelectorLabels();
-    }
+    // if (typeof updateAgentSelectorLabels === 'function') {
+    //     updateAgentSelectorLabels();
+    // }
     
     // Populate language dropdown from config
     populateLanguageDropdown(lang);
     
+    // Populate suggestion cards from config
+    populateSuggestionCards(lang);
+    
     // Refresh agent-specific placeholders
-    if (typeof switchAgent === 'function' && typeof currentAgent !== 'undefined') {
-        switchAgent(currentAgent);
-    }
+    // if (typeof switchAgent === 'function' && typeof currentAgent !== 'undefined') {
+    //     switchAgent(currentAgent);
+    // }
     
     // Update language selector value
     const langSelector = document.getElementById('language-selector');
@@ -182,6 +179,77 @@ function populateLanguageDropdown(lang) {
 }
 
 /**
+ * Populate suggestion cards dynamically from config
+ */
+function populateSuggestionCards(lang) {
+    const suggestionsContainer = document.querySelector('.suggestions');
+    if (!suggestionsContainer) return;
+    
+    const langData = mainConfig[lang] || mainConfig['fr'];
+    
+    // Clear existing cards
+    suggestionsContainer.innerHTML = '';
+    
+    if (langData && langData.suggestions) {
+        const suggestions = langData.suggestions;
+        
+        // Handle both array and object formats
+        const suggestionsList = Array.isArray(suggestions) 
+            ? suggestions 
+            : Object.entries(suggestions).map(([key, value]) => ({ id: key, ...value }));
+        
+        suggestionsList.forEach((suggestion) => {
+            const card = document.createElement('div');
+            card.className = 'suggestion-card';
+            
+            // Set background color if color attribute exists
+            if (suggestion.color) {
+                card.style.backgroundColor = suggestion.color;
+            }
+            
+            const title = document.createElement('h3');
+            // Add icon if it exists as a separate attribute
+            title.textContent = suggestion.icon ? `${suggestion.icon} ${suggestion.title}` : suggestion.title;
+            
+            const description = document.createElement('p');
+            description.textContent = suggestion.description;
+            
+            card.appendChild(title);
+            card.appendChild(description);
+            
+            // Add click event listener
+            card.addEventListener('click', async function() {
+                console.log('Suggestion clicked:', suggestion);
+                if (suggestion.event && suggestion.event.startsWith('display:')) {
+                    // Extract text from event (e.g., "display:Some text" -> "Some text")
+                    const displayText = suggestion.event.split(':')[1] || suggestion.event.replace('display:', '').trim();
+                    if (inputBox && displayText) {
+                        inputBox.value = displayText;
+                        console.log(`Displaying text: ${displayText}`);
+                        inputBox.focus();
+                    }
+                } else if (suggestion.event && suggestion.event.startsWith('switch:')) {
+                    // Extract agent name from event (e.g., "switch:nutria" -> "nutria")
+                    const agentName = suggestion.event.split(':')[1] || suggestion.event.replace('switch:', '').trim();
+                    if (agentName && typeof switchAgent === 'function') {
+                        if (agentSelector) {
+                            agentSelector.value = agentName;
+                        }
+                        console.log(`Switching agent to: ${agentName}`);
+                        await switchAgent(agentName, true);
+                    }
+                } else {
+                    // No action for other events
+                    console.log('No action for suggestion event:', suggestion.event);
+                }
+            });
+            
+            suggestionsContainer.appendChild(card);
+        });
+    }
+}
+
+/**
  * Get nested value from object using dot notation
  */
 function getNestedValue(obj, path) {
@@ -200,7 +268,7 @@ function switchLanguage(lang) {
     const url = new URL(window.location);
     url.searchParams.set('lang', lang);
     window.history.replaceState({}, '', url);
-    applyCommon(lang);
+    applyConfig(lang);
     
     // Update language selector value
     const langSelector = document.getElementById('language-selector');
@@ -248,7 +316,7 @@ function getCurrentLanguage() {
  */
 function switchActiveConfig(agent) {
     currentAgent = agent;
-    applyCommon(currentLanguage);
+    applyConfig(currentLanguage);
 }
 
 // ===================================
@@ -300,6 +368,128 @@ let isRecording = false;
 // Keyboard state
 let isKeyboardVisible = false;
 let previousViewportHeight = window.innerHeight;
+
+// ===================================
+// COMPONENT REGISTRY SYSTEM
+// ===================================
+
+/**
+ * Component Registry - manages UI components for different agents
+ */
+const componentRegistry = {
+    /**
+     * Language Selector Component
+     * Supports single, pair (source/target), or multi-select modes
+     */
+    languageSelector: {
+        render(config) {
+            const container = document.getElementById('translate-options');
+            if (!container) return;
+            
+            const type = config.type || 'pair';
+            
+            if (type === 'pair') {
+                // Show the translate options bar
+                container.style.display = 'flex';
+                
+                // Update labels
+                const sourceLabel = document.getElementById('source-language-text');
+                const targetSelect = document.getElementById('target-language');
+                
+                if (sourceLabel && config.source) {
+                    sourceLabel.textContent = config.source.label || 'Auto';
+                }
+                
+                // Populate target language options
+                if (targetSelect && config.languages) {
+                    this.populateLanguages(targetSelect, config.languages, config.target?.default);
+                }
+            } else {
+                // Hide for other types (single/multi not implemented yet)
+                container.style.display = 'none';
+            }
+        },
+        
+        hide() {
+            const container = document.getElementById('translate-options');
+            if (container) {
+                container.style.display = 'none';
+            }
+        },
+        
+        populateLanguages(select, languages, defaultValue) {
+            if (!select || !languages) return;
+            
+            select.innerHTML = '';
+            for (const [code, label] of Object.entries(languages)) {
+                const option = document.createElement('option');
+                option.value = code;
+                option.textContent = label;
+                select.appendChild(option);
+            }
+            
+            if (defaultValue && languages[defaultValue]) {
+                select.value = defaultValue;
+            }
+        },
+        
+        getValue() {
+            const targetSelect = document.getElementById('target-language');
+            return {
+                source: 'auto', // Could be extended to read from a source selector
+                target: targetSelect ? targetSelect.value : 'fr',
+                reversed: translationReversed
+            };
+        },
+        
+        reset() {
+            translationReversed = false;
+            const directionBtn = document.getElementById('translation-direction-btn');
+            if (directionBtn) {
+                directionBtn.classList.remove('reversed');
+            }
+        }
+    },
+    
+    /**
+     * Input Component
+     * Manages input area visibility and configuration
+     */
+    inputArea: {
+        render(config) {
+            const inputArea = document.querySelector('.input-area');
+            const inputBox = document.getElementById('input-box');
+            const disclaimerEl = document.querySelector('.input-disclaimer');
+            
+            if (inputArea && config.showInputOnLoad !== undefined) {
+                inputArea.style.display = config.showInputOnLoad ? '' : 'none';
+            }
+            
+            if (inputBox && config.placeholder) {
+                inputBox.placeholder = config.placeholder;
+            }
+            
+            if (disclaimerEl && config.disclaimer) {
+                disclaimerEl.textContent = config.disclaimer;
+            }
+        },
+        
+        show() {
+            const inputArea = document.querySelector('.input-area');
+            if (inputArea) {
+                inputArea.style.display = '';
+            }
+        },
+        
+        hide() {
+            const inputArea = document.querySelector('.input-area');
+            if (inputArea) {
+                inputArea.style.display = 'none';
+            }
+        }
+    }
+};
+
 
 // ===================================
 // MOBILE KEYBOARD DETECTION
@@ -1822,73 +2012,68 @@ function toggleRecognitionMethod() {
 // ===================================
 
 /**
- * Switch between agents (dok2u assistant vs translator)
+ * Display agent-specific intro in the empty state
+ * @param {string} agent - Agent name ('nutria' or 'translator')
  */
-function switchAgent(agent, userInitiated) {
-    currentAgent = agent;
-    const isTranslator = agent === 'translator';
+function displayAgentIntro(agent) {
+    if (!emptyState) return;
     
-    // Switch to the appropriate config when user switches agents
-    if (userInitiated) {
-        switchActiveConfig(agent);
+    const langData = mainConfig[currentLanguage] || mainConfig['fr'];
+    const intro = langData.intro || {};
+    
+    // Update profile image
+    const profileImg = emptyState.querySelector('.profile-photo');
+    if (profileImg && intro.profileImage) {
+        profileImg.src = intro.profileImage;
     }
     
-    // Reset translation direction to initial state when switching to translator
-    if (isTranslator) {
-        translationReversed = false;
-        if (translationDirectionBtn) {
-            translationDirectionBtn.classList.remove('reversed');
-        }
+    // Update title
+    const titleEl = emptyState.querySelector('h2[data-i18n="intro.title"]');
+    if (titleEl && intro.title) {
+        titleEl.textContent = intro.title;
     }
     
-    // Show/hide translation options bar
-    if (translateOptions) {
-        translateOptions.style.display = isTranslator ? 'flex' : 'none';
-    }
-    
-    // Update placeholder
-    if (isTranslator) {
-        inputBox.placeholder = t('translator.placeholder') || 'Entrez le texte à traduire...';
-    } else {
-        inputBox.placeholder = t('input.placeholder') || 'Pose-moi une question...';
-    }
-    
-    // Show input area when agent is selected
-    if (userInitiated) {
-        const inputArea = document.querySelector('.input-area');
-        if (inputArea) {
-            inputArea.style.display = '';
-        }
-    }
-    
-    // Hide intro/empty state only when user explicitly picks an agent
-    if (userInitiated && emptyState) {
-        emptyState.style.display = 'none';
-    }
-
-    // Clear chat messages when switching agents
-    if (userInitiated && chatContainer) {
-        chatContainer.querySelectorAll('.message, #chat-bottom-spacer').forEach(el => el.remove());
-        
-        // Show agent welcome message
-        const welcomeText = isTranslator ? mainConfig[currentLanguage]?.['agents'] ?.['welcome']: mainConfig[currentLanguage]?.['agents'] ?.['welcome'];
-        const welcomeDiv = document.createElement('div');
-        welcomeDiv.className = 'message assistant';
-        welcomeDiv.innerHTML = `
-            <div class="message-icon">D2U</div>
-            <div class="message-content">
-                <div class="message-text">${welcomeText}</div>
-            </div>
-        `;
-        chatContainer.appendChild(welcomeDiv);
+    // Update description
+    const descEl = emptyState.querySelector('p[data-i18n="intro.description"]');
+    if (descEl && intro.description) {
+        descEl.textContent = intro.description;
     }
     
     // Update disclaimer
-    const disclaimerEl = document.querySelector('.input-disclaimer');
-    if (disclaimerEl) {
-        disclaimerEl.textContent = isTranslator 
-            ? (t('translator.disclaimer') || '⚠️ Traduction automatique. Vérifiez toujours le résultat.')
-            : (t('input.disclaimer') || '⚠️ Peut contenir des erreurs.');
+    const disclaimerEl = emptyState.querySelector('strong[data-i18n="intro.disclaimer"]');
+    if (disclaimerEl && intro.disclaimer) {
+        disclaimerEl.textContent = intro.disclaimer;
+    }
+    
+    // Show the intro
+    emptyState.style.display = '';
+}
+
+/**
+ * Switch between agents using component-driven architecture
+ */
+async function switchAgent(agent, userInitiated) {
+    currentAgent = agent;
+    
+    // Load agent-specific config when user switches agents
+    if (userInitiated) {
+        // Map agent names: 'dok2u' -> 'nutria' for config loading
+        const configAgent = agent === 'dok2u' ? 'nutria' : agent;
+        await loadConfig(configAgent);
+        
+        // Display agent-specific intro
+        displayAgentIntro(configAgent);
+        
+        // Get language-specific config
+        const langData = mainConfig[currentLanguage] || mainConfig['fr'];
+        
+        // Render components based on configuration
+        renderAgentComponents(langData);
+        
+        // Clear chat messages when switching agents
+        if (chatContainer) {
+            chatContainer.querySelectorAll('.message, #chat-bottom-spacer').forEach(el => el.remove());
+        }
     }
 
     // Focus input only on user action
@@ -1897,23 +2082,47 @@ function switchAgent(agent, userInitiated) {
     }
 }
 
-// Agent selector event listener
-if (agentSelector) {
-    agentSelector.addEventListener('change', function() {
-        switchAgent(this.value, true);
-    });
+/**
+ * Render agent-specific UI components from configuration
+ * @param {Object} langData - Language-specific agent configuration
+ */
+function renderAgentComponents(langData) {
+    // Check if agent has components configuration
+    if (langData.components) {
+        // Render language selector if configured
+        if (langData.components.languageSelector) {
+            componentRegistry.languageSelector.render(langData.components.languageSelector);
+        } else {
+            componentRegistry.languageSelector.hide();
+        }
+        
+        // Render input area if configured in components
+        if (langData.components.inputArea) {
+            componentRegistry.inputArea.render(langData.components.inputArea);
+        } else if (langData.input) {
+            // Backward compatibility: check old location
+            componentRegistry.inputArea.render(langData.input);
+        }
+    } else {
+        // No components config = hide language selector (backward compatibility)
+        componentRegistry.languageSelector.hide();
+        
+        // Still render input area from old location if available
+        if (langData.input) {
+            componentRegistry.inputArea.render(langData.input);
+        }
+    }
+    
+    // Populate suggestion cards
+    populateSuggestionCards(currentLanguage);
 }
 
-// Agent card click listeners (intro suggestion cards)
-document.querySelectorAll('.agent-card[data-agent]').forEach(card => {
-    card.addEventListener('click', function() {
-        const agent = this.getAttribute('data-agent');
-        if (agentSelector) {
-            agentSelector.value = agent;
-        }
-        switchAgent(agent, true);
+// Agent selector event listener
+if (agentSelector) {
+    agentSelector.addEventListener('change', async function() {
+        await switchAgent(this.value, true);
     });
-});
+}
 
 // Translation direction button for translator
 if (translationDirectionBtn) {
@@ -2282,16 +2491,14 @@ async function speakText(text, button = null) {
  * Initialize the application
  */
 document.addEventListener('DOMContentLoaded', function() {
-    // Hide input area on initial load (show only when agent is selected)
-    const inputArea = document.querySelector('.input-area');
-    if (inputArea) {
-        inputArea.style.display = 'none';
-    }
-    
     // Load translations and set up internationalization
-    loadTranslations().then(() => {
+    loadConfig('common').then(() => {
         updateAgentSelectorLabels();
         updateSourceLanguageDisplay();
+        
+        // Render components based on initial config
+        const langData = mainConfig[currentLanguage] || mainConfig['fr'];
+        renderAgentComponents(langData);
     });
     
     // Check for cookie consent

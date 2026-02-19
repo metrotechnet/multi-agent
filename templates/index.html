@@ -72,25 +72,18 @@
         </div>
     </header>
 
-        <div class="content" id="chat-container">
-            <div id="chat-top-spacer" style="flex: 1; min-height: 0;"></div>
-            <div class="empty-state" id="empty-state">
-                <img src="/static/imx-logo-color.png" alt="IMX Multi-Agent" data-i18n-alt="main_intro.profileAlt" data-i18n-src="main_intro.profileImage" class="profile-photo">
-                <h2 data-i18n="main_intro.title">Bienvenue sur IMX Multi-Agent</h2>
-                <p data-i18n="main_intro.description">Votre assistant intelligent pour accéder, comprendre et traduire vos documents. Posez vos questions et obtenez des réponses instantanées.</p>
-                <p><strong data-i18n="main_intro.disclaimer">Note : Cet agent IA fournit un support informationnel. Pour des décisions importantes, référez-vous toujours aux documents originaux.</strong></p>
-                <div class="suggestions">
-                    <div class="suggestion-card agent-card" data-agent="dok2u">
-                        <h3 data-i18n="suggestions.agent_nutrition.title">🥬 Agent Nutritionniste</h3>
-                        <p data-i18n="suggestions.agent_nutrition.description">Posez vos questions sur la nutrition et la santé</p>
-                    </div>
-                    <div class="suggestion-card agent-card" data-agent="translator">
-                        <h3 data-i18n="suggestions.agent_translator.title">🌐 Agent Traducteur</h3>
-                        <p data-i18n="suggestions.agent_translator.description">Traduire du contenu dans plusieurs langues</p>
-                    </div>
-                </div>
+    <div class="content" id="chat-container">
+        <div id="chat-top-spacer" style="flex: 1; min-height: 0;"></div>
+        <div class="empty-state" id="empty-state">
+            <img src="/static/imx-logo-color.png" alt="IMX Multi-Agent" data-i18n-alt="intro.profileAlt" data-i18n-src="intro.profileImage" class="profile-photo">
+            <h2 data-i18n="intro.title">Bienvenue sur IMX Multi-Agent</h2>
+            <p data-i18n="intro.description">Votre assistant intelligent pour accéder, comprendre et traduire vos documents. Posez vos questions et obtenez des réponses instantanées.</p>
+            <p><strong data-i18n="intro.disclaimer">Note : Cet agent IA fournit un support informationnel. Pour des décisions importantes, référez-vous toujours aux documents originaux.</strong></p>
+            <div class="suggestions">
+                <!-- Agent suggestion cards will be populated dynamically from config -->
             </div>
         </div>
+    </div>
     <footer>
             <!-- Translation language selector (hidden by default, shown when translator agent is active) -->
             <div class="translate-options" id="translate-options" style="display:none;">

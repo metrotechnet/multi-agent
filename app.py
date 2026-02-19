@@ -407,7 +407,7 @@ def get_translations(agent: Optional[str] = None):
     """
     try:
         # Load the main shared configuration
-        main_config_path = Path(__file__).parent / "knowledge-bases" / "common" / "config.json"
+        main_config_path = Path(__file__).parent / "knowledge-bases" / "common" / "common.json"
         main_config = {}
         if main_config_path.exists():
             with open(main_config_path, 'r', encoding='utf-8') as f:
@@ -415,12 +415,14 @@ def get_translations(agent: Optional[str] = None):
 
         # If no agent specified, return shared config
         if not agent:
-            return {"error": "agent not specified"}
+            return main_config
         
         # Load agent-specific configuration
         agent_config_path = None
         # Load shared configuration
-        if agent == "nutria":
+        if agent == "common":
+            agent_config_path = Path(__file__).parent / "knowledge-bases" / "common" / "config.json"
+        elif agent == "nutria":
             agent_config_path = Path(__file__).parent / "knowledge-bases" / "nutria" / "config.json"
         elif agent == "translator":
             agent_config_path = Path(__file__).parent / "knowledge-bases" / "translator" / "config.json"
