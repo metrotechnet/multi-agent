@@ -46,7 +46,8 @@ async def query_agent(request: QueryRequest):
             locale=request.locale,
             conversation_history=conversation_history,
             session=session,
-            question_id=question_id
+            question_id=question_id,
+            agent=request.agent
         ):
             # Detect refusal marker
             if chunk == "__REFUSAL__":

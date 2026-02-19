@@ -85,9 +85,9 @@ def load_prompts(kb_name=None):
         print(f"Error loading prompts: {e}")
         return {}
 
-def build_prompt_from_template(language, context, question, history_text=""):
+def build_prompt_from_template(language, context, question, history_text="", agent=None):
     """Build a complete prompt from the JSON template. Returns (prompt, model_config)"""
-    prompts_data = load_prompts()
+    prompts_data = load_prompts(kb_name=agent)
     lang_data = prompts_data.get(language, prompts_data.get("fr", {}))
     
     # Extract model configuration
@@ -231,7 +231,7 @@ def extract_pmids_from_text(text):
     """Extrait toutes les références PMID d'un texte."""
     return re.findall(r'PMID:\s*\d+', text)
 
-def get_links_from_contexts(contexts, metadatas=None):
+def get_links_from_contexts(contexts, metadatas=None, agent=None):
     """Extract links from contexts and metadata.
     
     Priority:
@@ -262,7 +262,7 @@ def get_links_from_contexts(contexts, metadatas=None):
     
     # Priority 3: If still no links and metadatas available, look up chunk_0
     if not links and metadatas:
-        col = get_collection()
+        col = get_collection(kb_name=agent)
         if col:
             sources = set()
             for meta in metadatas:
@@ -280,7 +280,7 @@ def get_links_from_contexts(contexts, metadatas=None):
     
     return list(links)
 
-def ask_question_stream(question, language="fr", timezone="UTC", locale="fr-FR", top_k=5, conversation_history=None, session=None, question_id=None):
+def ask_question_stream(question, language="fr", timezone="UTC", locale="fr-FR", top_k=5, conversation_history=None, session=None, question_id=None, agent=None):
     """Streaming version of ask_question with language support and conversation history"""
     # Use conversation_history if provided, otherwise empty list
     if conversation_history is None:
@@ -341,7 +341,7 @@ def ask_question_stream(question, language="fr", timezone="UTC", locale="fr-FR",
         links = []
         if is_substantial_question(question):
             metadatas = results.get('metadatas', [[]])[0]
-            links = get_links_from_contexts(contexts, metadatas=metadatas)
+            links = get_links_from_contexts(contexts, metadatas=metadatas, agent=agent)
         
         # Save links in session if provided
         if session is not None and question_id is not None:
@@ -350,7 +350,7 @@ def ask_question_stream(question, language="fr", timezone="UTC", locale="fr-FR",
             session['links'][question_id] = links
 
         # Build prompt using template from JSON
-        prompt, model_config = build_prompt_from_template(language, context, question, history_text)
+        prompt, model_config = build_prompt_from_template(language, context, question, history_text, agent=agent)
         
         if not prompt:
             yield "Error: Unable to load prompt template."
@@ -414,7 +414,7 @@ def ask_question_stream(question, language="fr", timezone="UTC", locale="fr-FR",
         yield f"Error processing your question: {str(e)}"
 
 
-def ask_question_stream_gemini(question, language="fr", timezone="UTC", locale="fr-FR", top_k=5, conversation_history=None, session=None, question_id=None, model_name="gemini-2.0-flash-exp"):
+def ask_question_stream_gemini(question, language="fr", timezone="UTC", locale="fr-FR", top_k=5, conversation_history=None, session=None, question_id=None, model_name="gemini-2.0-flash-exp", agent=None):
     """Streaming answer using Gemini with new template system. 
     This function now uses build_prompt_from_template for consistency.
     """
@@ -442,7 +442,7 @@ def ask_question_stream_gemini(question, language="fr", timezone="UTC", locale="
         yield refusal_result["answer"]
         return
 
-    col = get_collection()
+    col = get_collection(kb_name=agent)
     if col is None:
         yield "Error: ChromaDB collection is not available. Please run 'python index_chromadb.py' first to index your documents."
         return
@@ -475,7 +475,7 @@ def ask_question_stream_gemini(question, language="fr", timezone="UTC", locale="
         links = []
         if is_substantial_question(question):
             metadatas = results.get('metadatas', [[]])[0]
-            links = get_links_from_contexts(contexts, metadatas=metadatas)
+            links = get_links_from_contexts(contexts, metadatas=metadatas, agent=agent)
         
         # Save links in session if provided
         if session is not None and question_id is not None:
@@ -484,7 +484,7 @@ def ask_question_stream_gemini(question, language="fr", timezone="UTC", locale="
             session['links'][question_id] = links
 
         # Build prompt using template from JSON (same as OpenAI version)
-        prompt, model_config = build_prompt_from_template(language, context, question, history_text)
+        prompt, model_config = build_prompt_from_template(language, context, question, history_text, agent=agent)
         
         if not prompt:
             yield "Error: Unable to load prompt template."

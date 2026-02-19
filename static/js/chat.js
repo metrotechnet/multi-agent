@@ -275,9 +275,11 @@ function displayLinks(container, links) {
 async function handleStreamingResponse(question, contentDiv, actionsDiv) {
     const { BACKEND_URL, getCurrentLanguage } = window.ConfigModule;
     const { updateScrollIndicator } = window.UIUtilsModule || {};
+    const { getCurrentAgent } = window.AgentsModule || {};
     
     const requestData = {
         question: question,
+        agent: getCurrentAgent ? getCurrentAgent() : 'nutria',
         language: getCurrentLanguage(),
         timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC",
         locale: navigator.language || (getCurrentLanguage() === 'en' ? 'en-US' : 'fr-FR'),

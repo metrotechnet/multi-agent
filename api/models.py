@@ -7,6 +7,7 @@ from typing import Optional
 
 class QueryRequest(BaseModel):
     question: str
+    agent: str = "nutria"
     language: str = "fr"
     timezone: str = "UTC"
     locale: str = "fr-FR"
