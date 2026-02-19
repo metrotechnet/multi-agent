@@ -84,6 +84,9 @@ Each knowledge base can have its own `prompts.json` file that defines:
 - Behavioral constraints
 - Absolute rules
 - How the AI should respond
+- **Model Configuration**:
+  - `model_supplier`: "openai" or "gemini"
+  - `model_name`: "gpt-4o-mini", "gemini-2.0-flash-exp", etc.
 
 ### Creating Custom Prompts
 
@@ -98,6 +101,15 @@ When creating a new knowledge base, you can:
    - Edit tone and voice characteristics
    - Add domain-specific rules
    - Customize response style
+   - **Set model configuration**:
+     ```json
+     {
+       "model_supplier": "openai",
+       "model_name": "gpt-4o-mini",
+       "fr": { ... },
+       "en": { ... }
+     }
+     ```
    - Add language-specific instructions
 
 3. **The application automatically loads** the prompts from the active knowledge base folder

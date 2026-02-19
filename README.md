@@ -20,34 +20,52 @@ A multi-agent AI assistant platform. Features a **Document Assistant** powered b
 
 ```
 imx-multi-agent/
-├── app.py                    # FastAPI application (chat + translation endpoints)
-├── core/
-│   ├── query_chromadb.py     # ChromaDB vector search + LLM streaming
-│   ├── translate.py          # Translation module (text + audio via Whisper/GPT)
+├── app.py                    # FastAPI main server (82 lines - router registration)
+├── api/                      # API layer (presentation layer)
+│   ├── agents.py             # Agent configuration management & access control
+│   ├── config.py             # Configuration loading and merging (common + agent-specific)
+│   ├── logging.py            # Question/response logging with feedback tracking
+│   ├── models.py             # Pydantic request models (QueryRequest, TranslateRequest)
+│   ├── sessions.py           # Conversation session lifecycle management
+│   ├── utils.py              # Utility functions
+│   ├── README.md             # API architecture documentation
+│   ├── __init__.py           # API module init
+│   └── routes/               # API endpoint modules
+│       ├── admin.py          # Admin endpoints (logs, comments, likes)
+│       ├── agents.py         # Agent configuration API (keys, configs)
+│       ├── pipeline.py       # Google Drive document indexing endpoint
+│       ├── query.py          # RAG query endpoint (streaming SSE)
+│       ├── sessions.py       # Session management API (reset, info)
+│       ├── translation.py    # Translation & transcription endpoints
+│       ├── tts.py            # Text-to-speech endpoint
+│       └── __init__.py       # Routes module init
+├── core/                     # Business logic (domain layer)
+│   ├── query_chromadb.py     # ChromaDB vector search + LLM streaming (OpenAI + Gemini)
+│   ├── translate.py          # Translation module (text + audio via Whisper/GPT/Gemini)
 │   ├── pipeline_gdrive.py    # Pipeline: Google Drive → transcribe → index
 │   ├── refusal_engine.py     # Pattern-based refusal for off-topic questions
 │   └── __init__.py           # Core module init
 ├── scripts/
 │   ├── index_chromadb.py     # Index transcripts/documents to ChromaDB
 │   ├── create_knowledge_base.ps1  # Create new knowledge base structure
+│   ├── extract_docx.py       # DOCX text extraction utility
 │   └── __init__.py           # Scripts module init
-├── config/
-│   └── config.json           # Shared UI translations (FR/EN) for all agents
 ├── knowledge-bases/          # All knowledge bases and agent configs
-│   ├── common/              # Shared refusal engine configs
+│   ├── common/              # Shared configuration for all agents
+│   │   ├── config.json       # Shared UI translations (FR/EN), disclaimers, footer
 │   │   ├── refusal_patterns.json  # Patterns to detect off-topic questions
 │   │   ├── refusal_responses.json # Canned refusal responses
 │   │   └── README_REFUSAL.md      # Refusal engine documentation
 │   ├── nutria/              # Nutrition knowledge base
 │   │   ├── config.json      # Nutrition agent-specific UI config
-│   │   ├── prompts.json     # Agent-specific system prompts
+│   │   ├── prompts.json     # Agent system prompts + model config (OpenAI/Gemini)
 │   │   ├── transcripts/     # Transcript .txt files
 │   │   ├── documents/       # Source documents
-│   │   ├── extracted_texts/ # Extracted text files
-│   │   └── chroma_db/       # Vector database
+│   │   ├── extracted_texts/ # Extracted text files for indexing
+│   │   └── chroma_db/       # Vector database (auto-generated)
 │   ├── translator/          # Translator agent
 │   │   ├── config.json      # Translator agent-specific UI config
-│   │   └── prompts.json     # Translator system prompts (FR/EN)
+│   │   └── prompts.json     # Translator system prompts + model config
 │   └── README.md            # Knowledge base documentation
 ├── videos/                   # Downloaded videos (shared)
 ├── templates/
@@ -55,14 +73,14 @@ imx-multi-agent/
 ├── static/
 │   ├── script.js             # Frontend JS (agent switching, translation, SSE)
 │   ├── style.css             # Styles (pill selectors, responsive, dark theme)
-│   ├── config.js             # Backend URL configuration (generated)
+│   ├── config.js             # Agent definitions (keys fetched from /api/agent-keys)
 │   ├── logo-imx.png          # IMX logo
 │   └── favicon.ico           # Favicon
 ├── tests/
 │   ├── test_questions.json   # Test questions for validation
 │   └── __init__.py           # Tests module init
 ├── requirements.txt          # Python dependencies
-├── Dockerfile                # Container config
+├── Dockerfile                # Container config for Cloud Run
 ├── firebase.json             # Firebase Hosting configuration
 ├── .firebaserc               # Firebase project reference
 ├── build.bat                 # Cloud Build script (Docker image)
@@ -221,19 +239,20 @@ Access the API at **http://localhost:8080** (no UI, API only)
 
 ### Assistant Nutrition (nutria)
 
-RAG-based assistant that answers questions using indexed documents and transcripts. Uses ChromaDB for semantic search and GPT-4o-mini for response generation with source citations.
+RAG-based assistant that answers questions using indexed documents and transcripts. Uses ChromaDB for semantic search and configurable LLM (OpenAI GPT-4o-mini or Google Gemini 2.0) for response generation with source citations.
 
 **Endpoints:**
-- `POST /ask` — Streaming chat with SSE (supports conversation history)
+- `POST /query` — Streaming chat with SSE (supports conversation history, session management)
 
 ### Traducteur (translator)
 
-Real-time translation agent supporting 27 languages. Accepts both text and audio input.
+Real-time translation agent supporting 27 languages. Accepts both text and audio input. Uses configurable LLM (OpenAI or Gemini).
 
 **Endpoints:**
 - `GET /api/languages` — List supported languages
 - `POST /api/translate` — Translate text (streaming SSE)
-- `POST /api/translate_audio` — Transcribe & translate audio file (Whisper + GPT-4o-mini)
+- `POST /api/translate_audio` — Transcribe & translate audio file (Whisper + LLM)
+- `POST /api/transcribe_audio` — Transcribe audio to text (Whisper only)
 
 **Supported Languages:** French, English, Spanish, German, Italian, Portuguese, Chinese, Japanese, Korean, Arabic, Russian, Hindi, Dutch, Polish, Swedish, Turkish, Vietnamese, Thai, Indonesian, Czech, Romanian, Hungarian, Greek, Hebrew, Danish, Finnish, Norwegian.
 
@@ -305,7 +324,7 @@ The application uses a **layered configuration system** that separates shared UI
 
 ### Configuration Files
 
-1. **Shared Config** (`config/config.json`)
+1. **Shared Config** (`knowledge-bases/common/config.json`)
    - Application branding (title, description)
    - Header and sidebar navigation
    - Cookie consent banner
@@ -320,10 +339,12 @@ The application uses a **layered configuration system** that separates shared UI
      - Custom app title: "Nutria | Agent Nutritionniste"
      - Nutrition-focused suggestions (🥗 nutrition, 💊 supplements, 🏋️ training, 💡 health)
      - Domain-specific disclaimers
+     - Model configuration (model_supplier: openai/gemini, model_name: gpt-4o-mini/gemini-2.0-flash-exp)
    - **Translator Agent**: `knowledge-bases/translator/config.json`
      - Custom app title: "Traducteur IA | Agent Multilingue"
      - Translation-specific UI (sourceLabel, targetLabel)
      - Translation suggestions (📝 text, 🎤 audio)
+     - Model configuration for translation LLM
 
 ### How It Works
 
@@ -346,14 +367,17 @@ To create a new agent with custom UI:
 1. Create agent-specific config:
    ```bash
    cp knowledge-bases/nutria/config.json knowledge-bases/my-agent/config.json
+   cp knowledge-bases/nutria/prompts.json knowledge-bases/my-agent/prompts.json
    ```
 
 2. Customize the config:
    - Update `app.title` with agent branding
    - Modify `suggestions` with relevant actions
    - Customize `input.placeholder` and disclaimers
+   - Set `model_supplier` (openai or gemini) and `model_name` in prompts.json
 
-3. Update backend to recognize the new agent in `app.py`
+3. Register the agent in `agents.json` (if not already auto-discovered)
+   - The backend automatically recognizes agents from the knowledge-bases/ folder
 
 ## 🎯 Key Features
 
@@ -384,14 +408,14 @@ See [knowledge-bases/common/README_REFUSAL.md](knowledge-bases/common/README_REF
 
 ## 🔧 Technical Stack
 
-- **Backend**: FastAPI, Python 3.11+
-- **AI/ML**: OpenAI GPT-4o-mini (chat + translation), OpenAI Whisper (transcription)
+- **Backend**: FastAPI (modular architecture with clean separation: api/ layer + core/ layer), Python 3.11+
+- **AI/ML**: OpenAI GPT-4o-mini / Gemini 2.0 (chat + translation), OpenAI Whisper (transcription)
 - **Vector DB**: ChromaDB (local)
 - **Embeddings**: OpenAI text-embedding-3-large (3072 dimensions)
 - **Frontend**: HTML5, CSS3, JavaScript (ES6+)
 - **i18n**: JSON-based config with `data-i18n` attributes
 - **Cloud**: Google Cloud Run, Google Drive API
-- **Configuration**: Environment variables (`.env`) + `config/config.json`
+- **Configuration**: Environment variables (`.env`) + `knowledge-bases/common/config.json` (shared) + agent-specific configs
 
 ## 🚀 Deployment
 
@@ -482,7 +506,7 @@ python scripts/index_chromadb.py
 ### CORS Errors
 
 - Verify backend allows your frontend domain in CORS middleware
-- Check backend URL in `static/config.js`
+- Check backend URL in `static/js/backend-url.js`
 - Ensure backend is deployed and accessible
 
 ## 💰 Cost Estimation

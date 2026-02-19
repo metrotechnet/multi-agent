@@ -5,9 +5,19 @@ The frontend JavaScript code has been refactored from a single monolithic `scrip
 
 ## Module Structure
 
+### 0. **backend-url.js** - Backend URL Configuration
+- **Purpose**: Sets `window.BACKEND_URL` for all other modules to use
+- **Features**:
+  - Auto-detects localhost:3000 → points to localhost:8080 for local dev
+  - Auto-generated during Firebase deployment with production URL from `.env`
+  - Must load first before any module that makes API calls
+- **Exports**: `window.BACKEND_URL` (string)
+- **Note**: This is a simple utility file, not a full module with exported functions
+
 ### 1. **config.js** - Configuration & Internationalization
-- **Purpose**: Handles configuration loading and language management
+- **Purpose**: Handles configuration loading, language management, and agent access key retrieval
 - **Key Functions**:
+  - `loadAgentKeys()` - Fetch agent access keys from `/api/agent-keys` (security improvement: keys not hardcoded)
   - `loadConfig(agent)` - Load agent-specific configuration
   - `applyConfig(lang)` - Apply translations to DOM elements
   - `switchLanguage(lang)` - Change interface language
@@ -93,7 +103,8 @@ The frontend JavaScript code has been refactored from a single monolithic `scrip
 The modules must be loaded in this specific order to resolve dependencies:
 
 ```html
-<script src="/static/js/config.js"></script>          <!-- Config first -->
+<script src="/static/js/backend-url.js"></script>     <!-- Backend URL (sets window.BACKEND_URL) -->
+<script src="/static/js/config.js"></script>          <!-- Config module (uses window.BACKEND_URL) -->
 <script src="/static/js/components.js"></script>      <!-- Components need config -->
 <script src="/static/js/ui-utils.js"></script>        <!-- UI utilities -->
 <script src="/static/js/tts.js"></script>             <!-- TTS standalone -->
@@ -134,7 +145,8 @@ Modules communicate via the `window` object:
 
 ## Migration from script.js
 
-The original `script.js` (~2500 lines) has been split into 8 focused modules:
+The original `script.js` (~2500 lines) has been split into 9 focused modules:
+- backend-url.js: ~10 lines (backend URL configuration)
 - config.js: ~275 lines
 - components.js: ~140 lines
 - ui-utils.js: ~460 lines
@@ -144,7 +156,7 @@ The original `script.js` (~2500 lines) has been split into 8 focused modules:
 - agents.js: ~340 lines
 - main.js: ~180 lines
 
-**Total**: ~2355 lines (similar to original, but much better organized)
+**Total**: ~2365 lines (similar to original, but much better organized)
 
 ## Future Enhancements
 

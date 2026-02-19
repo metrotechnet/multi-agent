@@ -55,8 +55,8 @@ REM Update index.html to use correct paths for Firebase hosting
 echo Updating file paths for Firebase hosting...
 powershell -Command "(Get-Content 'public\index.html') -replace '/static/', 'static/' | Set-Content 'public\index.html'"
 
-REM Create a config.js file with backend URL if needed
-echo window.BACKEND_URL = '%BACKEND_URL%'; > "public\static\config.js"
+REM Create a backend-url.js file with backend URL if needed
+echo window.BACKEND_URL = '%BACKEND_URL%'; > "public\static\js\backend-url.js"
 
 echo.
 echo Files prepared successfully!

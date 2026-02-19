@@ -145,11 +145,11 @@ After making changes to `static/` or `templates/`:
 The frontend needs to know where the backend API is located. This is configured via:
 
 1. **BACKEND_URL** in `.env` file
-2. Automatically injected into `public/static/config.js` during deployment
+2. Automatically injected into `public/static/js/backend-url.js` during deployment
 
 The deployment script (`deploy-frontend.bat`) automatically:
 - Reads `BACKEND_URL` from `.env`
-- Creates `public/static/config.js` with the backend URL
+- Creates `public/static/js/backend-url.js` with the backend URL
 - Updates `index.html` to use relative paths for Firebase
 
 Your `script.js` should load the backend URL:

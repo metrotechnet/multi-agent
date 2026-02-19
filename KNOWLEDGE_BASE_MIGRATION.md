@@ -56,7 +56,10 @@ All data from the old structure has been automatically migrated to `knowledge-ba
 
 4. **Prompts Configuration**
    - Moved `prompts.json` from `config/` to `knowledge-bases/nutria/`
-   - Each knowledge base can now have its own prompts
+   - Each knowledge base can now have its own prompts and model configuration
+   - Added model configuration fields:
+     - `model_supplier`: "openai" or "gemini"
+     - `model_name`: "gpt-4o-mini", "gemini-2.0-flash-exp", etc.
    - Application loads prompts from active knowledge base
    - Falls back to `config/prompts.json` if not found (backward compatible)
 
