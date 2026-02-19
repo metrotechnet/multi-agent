@@ -87,9 +87,9 @@
     <footer>
             <!-- Translation language selector (hidden by default, shown when translator agent is active) -->
             <div class="translate-options" id="translate-options" style="display:none;">
-                <div class="source-language-display " id="source-language-display">
-                    <span id="source-language-text">FR</span>
-                </div>
+                <select id="source-language" class="language-select">
+                    <!-- Populated dynamically from config.json -->
+                </select>
                 <button class="translation-direction-btn" id="translation-direction-btn" title="Inverser la direction de traduction">
                     <svg viewBox="0 0 24 24" fill="currentColor" style="width:20px;height:20px;">
                         <path d="M12 4l-1.41 1.41L16.17 11H4v2h12.17l-5.58 5.59L12 20l8-8z"/>
@@ -148,6 +148,15 @@
     
     <!-- Backend configuration (optional, for Firebase hosting) -->
     <script src="/static/config.js"></script>
-    <script src="/static/script.js"></script>
+    
+    <!-- Modular JavaScript files (load in dependency order) -->
+    <script src="/static/js/config.js"></script>
+    <script src="/static/js/components.js"></script>
+    <script src="/static/js/ui-utils.js"></script>
+    <script src="/static/js/tts.js"></script>
+    <script src="/static/js/chat.js"></script>
+    <script src="/static/js/voice-recognition.js"></script>
+    <script src="/static/js/agents.js"></script>
+    <script src="/static/js/main.js"></script>
 </body>
 </html>
