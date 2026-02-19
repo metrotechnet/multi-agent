@@ -11,7 +11,7 @@ from dotenv import load_dotenv
 from pathlib import Path
 
 # Import route modules
-from api.routes import query, translation, tts, admin, agents, sessions, pipeline
+from api.routes import query, translation, tts, admin, agents, sessions, update
 
 # =====================================================
 # Configuration & Application Setup
@@ -53,7 +53,7 @@ app.include_router(tts.router, tags=["tts"])
 app.include_router(admin.router, tags=["admin"])
 app.include_router(agents.router, tags=["agents"])
 app.include_router(sessions.router, tags=["sessions"])
-app.include_router(pipeline.router, tags=["pipeline"])
+app.include_router(update.router, tags=["update"])
 
 # =====================================================
 # Main Routes

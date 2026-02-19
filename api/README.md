@@ -94,7 +94,7 @@ api/
 The main `app.py` file imports and registers all route modules:
 
 ```python
-from api.routes import query, translation, tts, admin, agents, sessions, pipeline
+from api.routes import query, translation, tts, admin, agents, sessions, update
 
 app.include_router(query.router, tags=["query"])
 app.include_router(translation.router, tags=["translation"])

@@ -26,33 +26,44 @@ KNOWLEDGE_BASE = os.getenv("KNOWLEDGE_BASE", "nutria")
 
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 
-# Knowledge base paths
-KB_PATH = PROJECT_ROOT / "knowledge-bases" / KNOWLEDGE_BASE
-DOCUMENTS_DIR = str(KB_PATH / "documents")
-EXTRACTED_DIR = str(KB_PATH / "extracted_texts")
-CHROMA_DB_DIR = str(KB_PATH / "chroma_db")
-
-# Setup folders
-os.makedirs(DOCUMENTS_DIR, exist_ok=True)
-os.makedirs(EXTRACTED_DIR, exist_ok=True)
-os.makedirs(CHROMA_DB_DIR, exist_ok=True)
-
-# Clients
+# Clients (initialized globally, paths determined per agent)
 client_openai = OpenAI(api_key=OPENAI_API_KEY)
 
-ef = embedding_functions.OpenAIEmbeddingFunction(
-    api_key=OPENAI_API_KEY, model_name="text-embedding-3-large"
-)
-chroma_client = chromadb.PersistentClient(
-    path=CHROMA_DB_DIR,
-    settings=Settings(
-        anonymized_telemetry=False,
-        allow_reset=False
+def get_agent_paths(agent=None):
+    """Get knowledge base paths for specific agent"""
+    kb_name = agent or KNOWLEDGE_BASE
+    kb_path = PROJECT_ROOT / "knowledge-bases" / kb_name
+    
+    return {
+        'kb_path': kb_path,
+        'documents_dir': str(kb_path / "documents"),
+        'extracted_dir': str(kb_path / "extracted_texts"),
+        'chroma_db_dir': str(kb_path / "chroma_db")
+    }
+
+def get_chroma_collection(agent=None):
+    """Get or create ChromaDB collection for specific agent"""
+    paths = get_agent_paths(agent)
+    
+    # Setup folders
+    os.makedirs(paths['documents_dir'], exist_ok=True)
+    os.makedirs(paths['extracted_dir'], exist_ok=True)
+    os.makedirs(paths['chroma_db_dir'], exist_ok=True)
+    
+    ef = embedding_functions.OpenAIEmbeddingFunction(
+        api_key=OPENAI_API_KEY, model_name="text-embedding-3-large"
     )
-)
-collection = chroma_client.get_or_create_collection(
-    name="gdrive_documents", embedding_function=ef
-)
+    chroma_client = chromadb.PersistentClient(
+        path=paths['chroma_db_dir'],
+        settings=Settings(
+            anonymized_telemetry=False,
+            allow_reset=False
+        )
+    )
+    collection = chroma_client.get_or_create_collection(
+        name="gdrive_documents", embedding_function=ef
+    )
+    return collection, paths
 
 # Google Drive authentication
 drive_service = None
@@ -125,10 +136,10 @@ def list_files_in_folder(folder_id=None, limit=None):
         print(f"❌ Error listing files: {str(e)}")
         return []
 
-def download_file(file_id, file_name, mime_type):
+def download_file(file_id, file_name, mime_type, documents_dir):
     """Download a file from Google Drive"""
     try:
-        file_path = os.path.join(DOCUMENTS_DIR, file_name)
+        file_path = os.path.join(documents_dir, file_name)
         
         # Google Docs need to be exported
         if mime_type == 'application/vnd.google-apps.document':
@@ -197,7 +208,7 @@ def extract_text_from_file(file_path, mime_type):
         print(f"⚠️  Unsupported file type: {mime_type}")
         return ""
 
-def process_document(file_info):
+def process_document(file_info, collection, paths):
     """Process a single document: download, extract text, and index"""
     file_id = file_info['id']
     file_name = file_info['name']
@@ -215,7 +226,7 @@ def process_document(file_info):
         pass
     
     # Download file
-    file_path = download_file(file_id, file_name, mime_type)
+    file_path = download_file(file_id, file_name, mime_type, paths['documents_dir'])
     if not file_path:
         return False
     
@@ -226,7 +237,7 @@ def process_document(file_info):
         return False
     
     # Save extracted text
-    text_path = os.path.join(EXTRACTED_DIR, f"{file_id}.txt")
+    text_path = os.path.join(paths['extracted_dir'], f"{file_id}.txt")
     with open(text_path, "w", encoding="utf-8") as f:
         f.write(text)
     
@@ -259,8 +270,14 @@ def process_document(file_info):
     print(f"✅ Indexed {len(chunks)} chunks from {file_name}")
     return True
 
-def run_pipeline(limit=None, folder_id=None):
-    """Main pipeline: list, download, extract, and index documents from Google Drive"""
+def run_pipeline(limit=None, folder_id=None, agent=None):
+    """Main pipeline: list, download, extract, and index documents from Google Drive
+    
+    Args:
+        limit: Maximum number of files to process
+        folder_id: Google Drive folder ID (default from env)
+        agent: Agent/knowledge base identifier (default from env)
+    """
     if not gdrive_authenticated:
         print("❌ Cannot run pipeline: Google Drive authentication required but failed")
         print("📋 Available options:")
@@ -275,20 +292,25 @@ def run_pipeline(limit=None, folder_id=None):
         print("❌ GDRIVE_FOLDER_ID not configured")
         return {"error": "Folder ID not configured", "authenticated": True}
     
+    # Get collection and paths for this agent
+    kb_name = agent or KNOWLEDGE_BASE
+    print(f"📦 Processing for knowledge base: {kb_name}")
+    collection, paths = get_chroma_collection(agent)
+    
     # List files
     files = list_files_in_folder(folder_id, limit)
     
     if not files:
         print("⚠️  No documents found in folder")
-        return {"processed": 0, "authenticated": True}
+        return {"processed": 0, "total": 0, "authenticated": True}
     
     # Process each file
     success_count = 0
-    for file_info in tqdm(files, desc="Processing documents"):
-        if process_document(file_info):
+    for file_info in tqdm(files, desc=f"Processing documents for {kb_name}"):
+        if process_document(file_info, collection, paths):
             success_count += 1
     
-    print(f"✅ Pipeline completed: {success_count}/{len(files)} documents processed")
+    print(f"✅ Pipeline completed for {kb_name}: {success_count}/{len(files)} documents processed")
     
     return {
         "processed": success_count,
@@ -308,9 +330,14 @@ def get_gdrive_status():
         "credentials_path": GDRIVE_CREDENTIALS_PATH if gdrive_authenticated else "Not configured"
     }
 
-def get_indexed_documents():
-    """Get list of indexed documents from ChromaDB"""
+def get_indexed_documents(agent=None):
+    """Get list of indexed documents from ChromaDB
+    
+    Args:
+        agent: Agent/knowledge base identifier (default from env)
+    """
     try:
+        collection, paths = get_chroma_collection(agent)
         results = collection.get()
         
         # Group by file_id

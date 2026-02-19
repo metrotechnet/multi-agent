@@ -102,7 +102,7 @@ A service account is like a robot account that your application will use to acce
 Run this command to test if everything is working:
 
 ```powershell
-python -c "from core.pipeline_gdrive import get_gdrive_status; print(get_gdrive_status())"
+python -c "from core.update_gdrive import get_gdrive_status; print(get_gdrive_status())"
 ```
 
 You should see a success message with the number of files found.
@@ -168,13 +168,13 @@ Once your Google Drive is connected:
 
 1. **Index your documents**:
    ```python
-   from core.pipeline_gdrive import run_pipeline
+   from core.update_gdrive import run_pipeline
    result = run_pipeline()
    ```
 
 2. **Check indexed documents**:
    ```python
-   from core.pipeline_gdrive import get_indexed_documents
+   from core.update_gdrive import get_indexed_documents
    docs = get_indexed_documents()
    ```
 

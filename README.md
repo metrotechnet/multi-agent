@@ -42,7 +42,7 @@ imx-multi-agent/
 ├── core/                     # Business logic (domain layer)
 │   ├── query_chromadb.py     # ChromaDB vector search + LLM streaming (OpenAI + Gemini)
 │   ├── translate.py          # Translation module (text + audio via Whisper/GPT/Gemini)
-│   ├── pipeline_gdrive.py    # Pipeline: Google Drive → transcribe → index
+│   ├── update_gdrive.py      # Pipeline: Google Drive → transcribe → index
 │   ├── refusal_engine.py     # Pattern-based refusal for off-topic questions
 │   └── __init__.py           # Core module init
 ├── scripts/
@@ -182,13 +182,13 @@ This will process files from the specified knowledge base folder, creating a vec
 
 ```powershell
 # Download, transcribe, and index content from Google Drive
-python -c "from core.pipeline_gdrive import run_pipeline; run_pipeline()"
+python -c "from core.update_gdrive import run_pipeline; run_pipeline()"
 ```
 
 Or via API:
 
 ```bash
-curl -X POST http://localhost:8080/update?limit=10
+curl -X POST http://localhost:8080/update?agent=nutria
 ```
 
 See [GDRIVE_SETUP.md](GDRIVE_SETUP.md) for Google Drive service account configuration.

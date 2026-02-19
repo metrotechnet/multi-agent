@@ -49,7 +49,7 @@ All data from the old structure has been automatically migrated to `knowledge-ba
    - `get_collection()` function now accepts optional `kb_name` parameter
    - Automatic path resolution to knowledge base folders
 
-3. **core/pipeline_gdrive.py**
+3. **core/update_gdrive.py**
    - Updated to use knowledge base paths
    - Respects `KNOWLEDGE_BASE` environment variable
    - Documents indexed to active knowledge base
@@ -173,7 +173,7 @@ print(f"Documents: {col.count()}")
 The pipeline respects the active knowledge base:
 
 ```python
-from core.pipeline_gdrive import run_pipeline
+from core.update_gdrive import run_pipeline
 
 # Downloads and indexes to active knowledge base
 result = run_pipeline()
