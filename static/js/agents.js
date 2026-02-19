@@ -214,8 +214,8 @@ async function sendTranslation() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 text: text,
-                target_language: targetLangName,
-                source_language: sourceLangName
+                target_language: actualTargetLang,
+                source_language: actualSourceLang
             })
         });
         

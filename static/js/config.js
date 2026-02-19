@@ -15,12 +15,22 @@ console.log('Using BACKEND_URL:', BACKEND_URL);
 let mainConfig = {};
 let currentLanguage = 'fr';
 let agentsConfig = null;
+let AGENT_KEYS = {}; // Will be loaded from server
 
-// Agent access keys (base64 encoded)
-const AGENT_KEYS = {
-    'nutria': 'bnV0cmlhX2FnZW50XzIwMjQ=',
-    'translator': 'dHJhbnNsYXRvcl9hZ2VudF8yMDI0'
-};
+/**
+ * Load agent access keys from server
+ */
+async function loadAgentKeys() {
+    try {
+        const response = await fetch(`${BACKEND_URL}/api/agent-keys`);
+        AGENT_KEYS = await response.json();
+        console.log('Agent keys loaded from server');
+        return AGENT_KEYS;
+    } catch (error) {
+        console.error('Failed to load agent keys:', error);
+        return {};
+    }
+}
 
 /**
  * Load agents configuration
@@ -52,6 +62,11 @@ function getUrlParameter(name) {
  */
 async function loadConfig(agent) {
     try {
+        // Load agent keys if not already loaded
+        if (Object.keys(AGENT_KEYS).length === 0 && agent !== 'common') {
+            await loadAgentKeys();
+        }
+        
         // Handle 'common' config separately (no access key required)
         if (agent === 'common') {
             const configResponse = await fetch(`${BACKEND_URL}/api/get_config?agent=common`);
@@ -323,6 +338,7 @@ window.ConfigModule = {
     AGENT_KEYS,
     loadConfig,
     loadAgentsConfig,
+    loadAgentKeys,
     applyConfig,
     populateSuggestionCards,
     switchLanguage,

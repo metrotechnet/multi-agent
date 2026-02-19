@@ -86,12 +86,18 @@ def load_prompts(kb_name=None):
         return {}
 
 def build_prompt_from_template(language, context, question, history_text=""):
-    """Build a complete prompt from the JSON template"""
+    """Build a complete prompt from the JSON template. Returns (prompt, model_config)"""
     prompts_data = load_prompts()
     lang_data = prompts_data.get(language, prompts_data.get("fr", {}))
     
+    # Extract model configuration
+    model_config = {
+        "supplier": prompts_data.get("model_supplier", "openai"),
+        "name": prompts_data.get("model_name", "gpt-4o-mini")
+    }
+    
     if not lang_data:
-        return None
+        return None, model_config
     
     # Build communication style content
     comm_style = lang_data.get('communication_style', {})
@@ -136,7 +142,7 @@ def build_prompt_from_template(language, context, question, history_text=""):
         question=question
     )
     
-    return prompt
+    return prompt, model_config
 
 def get_collection(kb_name=None):
     """
@@ -344,48 +350,99 @@ def ask_question_stream(question, language="fr", timezone="UTC", locale="fr-FR",
             session['links'][question_id] = links
 
         # Build prompt using template from JSON
-        prompt = build_prompt_from_template(language, context, question, history_text)
+        prompt, model_config = build_prompt_from_template(language, context, question, history_text)
         
         if not prompt:
             yield "Error: Unable to load prompt template."
             return
                 
-
+ 
         #Save prompt for debugging
         # with open("debug_prompt.txt", "w", encoding="utf-8") as f:
         #     f.write(prompt)
 
-        # Get streaming response from GPT
-        stream = client.chat.completions.create(
-            model="gpt-4o-mini",
-            messages=[
-                {"role": "user", "content": prompt}
-            ],
-            temperature=0.7,
-            stream=True
-        )
+        # Get streaming response from configured LLM
+        model_name = model_config.get('name', 'gpt-4o-mini')
+        model_supplier = model_config.get('supplier', 'openai')
+        
+        if model_supplier == 'openai':
+            # OpenAI streaming
+            stream = client.chat.completions.create(
+                model=model_name,
+                messages=[
+                    {"role": "user", "content": prompt}
+                ],
+                temperature=0.7,
+                stream=True
+            )
 
-        first_chunk = True
-        answer = ""
-        for chunk in stream:
-            if chunk.choices[0].delta.content is not None:
-                content = chunk.choices[0].delta.content
-                # Strip leading whitespace from first chunk only
-                if first_chunk:
-                    content = content.lstrip()
-                    first_chunk = False
-                if content:
-                    answer += content
-                    yield content
+            first_chunk = True
+            answer = ""
+            for chunk in stream:
+                if chunk.choices[0].delta.content is not None:
+                    content = chunk.choices[0].delta.content
+                    # Strip leading whitespace from first chunk only
+                    if first_chunk:
+                        content = content.lstrip()
+                        first_chunk = False
+                    if content:
+                        answer += content
+                        yield content
+                        
+        elif model_supplier == 'gemini':
+            # Gemini streaming
+            model = genai.GenerativeModel(model_name, generation_config={
+                "temperature": 0.7
+            })
+            
+            response = model.generate_content(prompt, stream=True)
+            
+            first_chunk = True
+            for chunk in response:
+                text = getattr(chunk, "text", None)
+                if text:
+                    if first_chunk:
+                        text = text.lstrip()
+                        first_chunk = False
+                    if text:
+                        yield text
+        else:
+            yield f"Error: Model supplier '{model_supplier}' not supported. Use 'openai' or 'gemini'."
+            return
 
     except Exception as e:
         yield f"Error processing your question: {str(e)}"
 
 
-def ask_question_stream_gemini(question, language="fr", timezone="UTC", locale="fr-FR", top_k=5, model_name="gemini-2.5-flash"):
-    """Streaming answer using Gemini, mirroring ask_question_stream flow."""
-    col = get_collection()
+def ask_question_stream_gemini(question, language="fr", timezone="UTC", locale="fr-FR", top_k=5, conversation_history=None, session=None, question_id=None, model_name="gemini-2.0-flash-exp"):
+    """Streaming answer using Gemini with new template system. 
+    This function now uses build_prompt_from_template for consistency.
+    """
+    # Use conversation_history if provided, otherwise empty list
+    if conversation_history is None:
+        conversation_history = []
 
+    # Build history_text for refusal_engine
+    history_text = ""
+    if conversation_history and len(conversation_history) > 1:
+        history_text = "\n\nHISTORIQUE DE LA CONVERSATION:\n"
+        recent_history = conversation_history[-7:-1] if len(conversation_history) > 1 else []
+        for msg in recent_history:
+            role_label = "Utilisateur" if msg['role'] == 'user' else "Assistant"
+            history_text += f"{role_label}: {msg['content']}\n"
+
+    # Refusal engine check
+    refusal_result = validate_user_query(question, llm_call_fn=None, language=language)
+    if refusal_result and refusal_result.get("decision") == "refuse":
+        if session is not None and question_id is not None:
+            if 'links' not in session:
+                session['links'] = {}
+            session['links'][question_id] = []
+        yield "__REFUSAL__"
+        yield refusal_result["answer"]
+        return
+
+    col = get_collection()
     if col is None:
         yield "Error: ChromaDB collection is not available. Please run 'python index_chromadb.py' first to index your documents."
         return
@@ -400,7 +457,8 @@ def ask_question_stream_gemini(question, language="fr", timezone="UTC", locale="
         # Query ChromaDB
         results = col.query(
             query_embeddings=[query_emb],
-            n_results=top_k
+            n_results=top_k,
+            include=['documents', 'metadatas']
         )
 
         if not results['documents'] or not results['documents'][0]:
@@ -413,53 +471,28 @@ def ask_question_stream_gemini(question, language="fr", timezone="UTC", locale="
             contexts.append(doc)
         context = "\n\n".join(contexts)
 
-        # Load Style Card and system prompts
-        style_guides, style_data = load_style_guides()
-        style_guide = style_guides.get(language, style_guides.get("fr", ""))
-        not_found_msg = style_data.get(language, {}).get(
-            'not_found_message',
-            style_data.get('fr', {}).get('not_found_message', "Information not found in current content.")
-        )
+        # Extract links from context
+        links = []
+        if is_substantial_question(question):
+            metadatas = results.get('metadatas', [[]])[0]
+            links = get_links_from_contexts(contexts, metadatas=metadatas)
+        
+        # Save links in session if provided
+        if session is not None and question_id is not None:
+            if 'links' not in session:
+                session['links'] = {}
+            session['links'][question_id] = links
 
-        system_prompts_data = load_system_prompts()
-        base_prompt_fr = system_prompts_data.get('fr', {}).get('content', '')
-        base_prompt_en = system_prompts_data.get('en', {}).get('content', '')
+        # Build prompt using template from JSON (same as OpenAI version)
+        prompt, model_config = build_prompt_from_template(language, context, question, history_text)
+        
+        if not prompt:
+            yield "Error: Unable to load prompt template."
+            return
 
-        prompts = {
-            "fr": f"""{base_prompt_fr}
-
-            {style_guide}
-
-            CONTEXTE DISPONIBLE:
-            {context}
-
-            QUESTION DE L'UTILISATEUR: {question}
-
-            INSTRUCTIONS SPÉCIALES:
-            - Si l'information n'est pas disponible dans le contexte, réponds: "{not_found_msg}"
-            - Applique rigoureusement ta structure narrative et tes expressions caractéristiques
-            - Reste dans ton rôle de Ben avec ton style unique et reconnaissable""",
-
-            "en": f"""{base_prompt_en}
-
-            {style_guide}
-
-            AVAILABLE CONTEXT:
-            {context}
-
-            USER QUESTION: {question}
-
-            SPECIAL INSTRUCTIONS:
-            - If information is not available in the context, respond: "{not_found_msg}"
-            - Strictly apply your narrative structure and characteristic expressions
-            - Stay in your role as Ben with your unique and recognizable style"""
-        }
-
-        prompt = prompts.get(language, prompts["fr"]) if language in ["fr", "en"] else prompts["fr"]
-
-        # Configure model (temperature to mirror OpenAI setup)
+        # Configure Gemini model
         model = genai.GenerativeModel(model_name, generation_config={
-            "temperature": 0.3
+            "temperature": 0.7
         })
 
         # Stream tokens
