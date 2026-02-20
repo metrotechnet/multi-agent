@@ -1,0 +1,72 @@
+[
+  {
+    "question_id": "56dc12d5-91f6-4dc6-88ac-2287b1563a71",
+    "question": "creatine",
+    "response": "La créatine est un supplément largement étudié, surtout chez les athlètes, où elle prouve son efficacité pour augmenter la force, la masse maigre et la capacité à réaliser des efforts courts et intenses. Elle est également bénéfique pour les personnes âgées, en combinaison avec un entraînement en résistance, car elle aide à réduire la sarcopénie et à améliorer la densité osseuse.\n\nLes végétariens et véganes peuvent en tirer encore plus de bénéfices, notamment en matière de masse musculaire et de cognition, car ils ont souvent des réserves musculaires plus faibles. La créatine peut également jouer un rôle dans la réduction des dommages musculaires et de l'inflammation, en particulier lors d'efforts répétés à haute intensité.\n\nCependant, il est important de noter qu'il existe des \"non-répondeurs\", c'est-à-dire des personnes qui ne bénéficient pas des effets de la créatine, souvent en raison de niveaux déjà saturés dans leurs muscles ou de particularités génétiques.\n\nEnfin, la créatine n'est pas réservée aux hommes et peut être un outil utile pour la santé et la performance des femmes. Pour des recommandations spécifiques ou des questions de santé, il est toujours préférable de consulter un professionnel de la santé.",
+    "timestamp": "2026-02-18T10:28:43.298222",
+    "comments": []
+  },
+  {
+    "question_id": "36cbd264-1172-4ab8-a386-00127f6d85c4",
+    "question": "Bonjour, comment ça va ?",
+    "response": "Salut ! Je vais bien, merci. Et toi ? Si tu as des questions sur la nutrition ou d'autres sujets, n'hésite pas à les poser !",
+    "timestamp": "2026-02-18T10:29:32.687089",
+    "comments": []
+  },
+  {
+    "question_id": "fc191e59-d1d4-4a16-b634-9b2c35409c5f",
+    "question": "[TRANSLATION Français→English (Anglais)] bnjour",
+    "response": "Hello",
+    "timestamp": "2026-02-18T10:29:54.203711",
+    "comments": []
+  },
+  {
+    "question_id": "3d4ad91b-f02e-4b0c-89a7-27002059842a",
+    "question": "[TRANSLATION English (Anglais)→Français] hello",
+    "response": "bonjour",
+    "timestamp": "2026-02-18T10:30:03.400465",
+    "comments": []
+  },
+  {
+    "question_id": "fd93118f-f998-431f-bd22-7f0e1a5539e6",
+    "question": "[TRANSLATION Français→English (Anglais)] Comment ça va ?",
+    "response": "How are you?",
+    "timestamp": "2026-02-18T10:30:14.663205",
+    "comments": []
+  },
+  {
+    "question_id": "d505240b-ba6b-4386-8328-c87a3767657a",
+    "question": "c'est quoi de la créatine",
+    "response": "No relevant information found. Please make sure you have indexed some transcripts.",
+    "timestamp": "2026-02-18T10:43:15.319061",
+    "comments": []
+  },
+  {
+    "question_id": "d79b5d20-5305-4e02-99fd-67db29f40c0e",
+    "question": "créatine",
+    "response": "La créatine est un supplément très étudié, surtout dans le contexte des sports de force et de puissance. Elle est efficace pour augmenter la force maximale, la masse maigre et améliorer la capacité à réaliser des efforts courts et intenses. Chez les personnes âgées, elle peut aider à réduire la sarcopénie et à améliorer l'autonomie fonctionnelle lorsqu'elle est combinée avec un entraînement en résistance.\n\nLes végétariens et véganes, qui ont généralement des réserves musculaires plus faibles, peuvent bénéficier encore plus de la créatine en termes de gains musculaires et cognitifs. Cependant, son efficacité dépend du contexte d’utilisation, et il existe des \"non-répondeurs\", c'est-à-dire des personnes qui ne réagissent pas au supplément en raison de réserves déjà saturées ou de particularités génétiques.\n\nIl est important de rappeler que la créatine ne convient pas à tout le monde et que son utilisation doit être envisagée de manière personnalisée. Pour toute question spécifique ou pour des conseils adaptés à ta situation, il est préférable de consulter un professionnel de la santé qualifié.",
+    "timestamp": "2026-02-18T10:47:41.367409",
+    "comments": []
+  },
+  {
+    "question_id": "6a987648-dd21-421f-aec5-673dee64f79d",
+    "question": "[TRANSLATION Français→English (Anglais)] bonjour",
+    "response": "hello",
+    "timestamp": "2026-02-18T10:48:06.030322",
+    "comments": []
+  },
+  {
+    "question_id": "e625338b-3312-46cc-8508-aa9364cb1659",
+    "question": "[TRANSLATION English (Anglais)→Français] Come on, shut up.",
+    "response": "Allez, tais-toi.",
+    "timestamp": "2026-02-18T10:48:11.783814",
+    "comments": []
+  },
+  {
+    "question_id": "ddc835d4-06b0-445e-ba6b-d226a347e389",
+    "question": "[TRANSLATION Français→English (Anglais)] Comment ça va ?",
+    "response": "How are you?",
+    "timestamp": "2026-02-18T10:48:22.875791",
+    "comments": []
+  }
+]

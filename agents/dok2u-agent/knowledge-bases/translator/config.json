@@ -1,0 +1,148 @@
+{
+  "fr": {
+    "app": {
+      "title": "Traducteur IA | Agent Multilingue",
+      "description": "Agent de traduction automatique par Dok2u Multi-Agent"
+    },
+    "agents": {
+      "label": "Agent",
+      "title": "Agent Traducteur",
+      "welcome": "Bonjour ! Je suis l'agent traducteur. Sélectionnez une langue cible et écrivez dans cette langue ou dans la langue de l'interface pour traduire automatiquement."
+    },
+    "translator": {
+      "sourceLabel": "De",
+      "targetLabel": "Vers",
+      "placeholder": "Écrivez votre texte...",
+      "sendButton": "Traduire",
+      "voiceButton": "Enregistrer un message vocal",
+      "result": "Traduction",
+      "transcription": "Transcription",
+      "disclaimer": "⚠️ Traduction automatique. Vérifiez toujours le résultat."
+    },
+    "intro": {
+      "title": "Traduction instantanée",
+      "description": "Traduisez vos textes dans plus de 25 langues. L'agent supporte la traduction de texte et audio.",
+      "disclaimer": "Note : Traduction automatique. Pour des documents officiels, consultez un traducteur professionnel.",
+      "profileAlt": "Agent Traducteur",
+      "profileImage": "/static/logo-dok2u.png"
+    },
+    "suggestions": {
+      "text_translation": {
+        "title": "📝 Traduction de texte",
+        "description": "Traduisez du texte écrit dans n'importe quelle langue"
+      },
+      "audio_translation": {
+        "title": "🎤 Traduction audio",
+        "description": "Enregistrez ou uploadez de l'audio pour traduction"
+      }
+    },
+    "input": {
+      "placeholder": "Écrivez votre texte à traduire...",
+      "sendButton": "Traduire",
+      "voiceButton": "Enregistrer un message vocal",
+      "disclaimer": "⚠️ Traduction automatique. Vérifiez toujours le résultat."
+    },
+    "languages": {
+      "en": "English (Anglais)",
+      "fr": "Français",
+      "es": "Español (Espagnol)",
+      "de": "Deutsch (Allemand)",
+      "it": "Italiano (Italien)",
+      "pt": "Português (Portugais)",
+      "nl": "Nederlands (Néerlandais)",
+      "ru": "Русский (Russe)",
+      "zh": "中文 (Chinois)",
+      "ja": "日本語 (Japonais)",
+      "ko": "한국어 (Coréen)",
+      "ar": "العربية (Arabe)",
+      "hi": "हिन्दी (Hindi)",
+      "pl": "Polski (Polonais)",
+      "tr": "Türkçe (Turc)",
+      "sv": "Svenska (Suédois)",
+      "da": "Dansk (Danois)",
+      "no": "Norsk (Norvégien)",
+      "fi": "Suomi (Finnois)",
+      "uk": "Українська (Ukrainien)",
+      "cs": "Čeština (Tchèque)",
+      "ro": "Română (Roumain)",
+      "el": "Ελληνικά (Grec)",
+      "he": "עברית (Hébreu)",
+      "th": "ไทย (Thaï)",
+      "vi": "Tiếng Việt (Vietnamien)",
+      "id": "Bahasa Indonesia (Indonésien)"
+    }
+  },
+  "en": {
+    "app": {
+      "title": "AI Translator | Multilingual Agent",
+      "description": "Automatic translation agent by Dok2u Multi-Agent"
+    },
+    "agents": {
+      "label": "Agent",
+      "translator": "Translator Agent",
+      "translator_welcome": "Hello! I am the translator agent. Select a target language and write in that language or in the interface language to translate automatically."
+    },
+    "translator": {
+      "sourceLabel": "From",
+      "targetLabel": "Translate to",
+      "placeholder": "Write in any language...",
+      "sendButton": "Translate",
+      "voiceButton": "Record voice message",
+      "result": "Translation",
+      "transcription": "Transcription",
+      "disclaimer": "⚠️ Automatic translation. Always verify the result."
+    },
+    "intro": {
+      "title": "Instant translation",
+      "description": "Translate your texts into more than 25 languages. The agent supports text and audio translation.",
+      "disclaimer": "Note: Automatic translation. For official documents, consult a professional translator.",
+      "profileAlt": "Translator Agent",
+      "profileImage": "/static/logo-dok2u.png"
+    },
+    "suggestions": {
+      "text_translation": {
+        "title": "📝 Text translation",
+        "description": "Translate written text in any language"
+      },
+      "audio_translation": {
+        "title": "🎤 Audio translation",
+        "description": "Record or upload audio for translation"
+      }
+    },
+    "input": {
+      "placeholder": "Write your text to translate...",
+      "sendButton": "Translate",
+      "voiceButton": "Record voice message",
+      "disclaimer": "⚠️ Automatic translation. Always verify the result."
+    },
+    "languages": {
+      "en": "English",
+      "fr": "Français (French)",
+      "es": "Español (Spanish)",
+      "de": "Deutsch (German)",
+      "it": "Italiano (Italian)",
+      "pt": "Português (Portuguese)",
+      "nl": "Nederlands (Dutch)",
+      "ru": "Русский (Russian)",
+      "zh": "中文 (Chinese)",
+      "ja": "日本語 (Japanese)",
+      "ko": "한국어 (Korean)",
+      "ar": "العربية (Arabic)",
+      "hi": "हिन्दी (Hindi)",
+      "pl": "Polski (Polish)",
+      "tr": "Türkçe (Turkish)",
+      "sv": "Svenska (Swedish)",
+      "da": "Dansk (Danish)",
+      "no": "Norsk (Norwegian)",
+      "fi": "Suomi (Finnish)",
+      "uk": "Українська (Ukrainian)",
+      "cs": "Čeština (Czech)",
+      "ro": "Română (Romanian)",
+      "el": "Ελληνικά (Greek)",
+      "he": "עברית (Hebrew)",
+      "th": "ไทย (Thai)",
+      "vi": "Tiếng Việt (Vietnamese)",
+      "id": "Bahasa Indonesia (Indonesian)"
+    }
+  }
+}

@@ -1,0 +1,86 @@
+{
+  "fr": {
+    "app": {
+      "title": "Nutria | Agent Nutritionniste",
+      "description": "Agent IA nutritionniste par Dok2u Multi-Agent"
+    },
+    "agents": {
+      "label": "Assistant",
+      "title": "Agent Nutritionniste",
+      "welcome": "Bonjour ! Je suis votre agent nutritionniste. Posez-moi vos questions sur l'alimentation, les suppléments ou la santé en général."
+    },
+    "intro": {
+      "title": "Des questions sur la nutrition ?",
+      "description": "Posez vos questions à notre agent IA et obtenez des réponses claires instantanément. Luttons contre la désinformation, une question à la fois.",
+      "disclaimer": "Note : Cet agent IA fournit uniquement des informations. Pour des conseils personnalisés, consultez un professionnel de santé qualifié.",
+      "profileAlt": "Nutria Agent",
+      "profileImage": "/static/logo-dok2u.png"
+    },
+    "suggestions": {
+      "nutrition": {
+        "title": "🥗 Nutrition",
+        "description": "Conseils alimentaires et nutrition"
+      },
+      "supplements": {
+        "title": "💊 Suppléments",
+        "description": "Questions sur les suppléments et leur utilisation"
+      },
+      "training": {
+        "title": "🏋️ Entraînement",
+        "description": "Performance et récupération sportive"
+      },
+      "health": {
+        "title": "💡 Santé",
+        "description": "Bien-être général et habitudes de vie"
+      }
+    },
+    "input": {
+      "placeholder": "Pose-moi une question sur la nutrition...",
+      "sendButton": "Envoyer",
+      "voiceButton": "Enregistrer un message vocal",
+      "disclaimer": "⚠️ Peut contenir des erreurs. Ne remplace pas un avis professionnel."
+    }
+  },
+  "en": {
+    "app": {
+      "title": "Nutr-AI | Nutritionist Agent",
+      "description": "AI Nutritionist Agent by Dok2u Multi-Agent"
+    },
+    "agents": {
+      "label": "Assistant",
+      "dok2u": "Nutritionist Agent",
+      "dok2u_welcome": "Hello! I am your nutritionist agent. Ask me your questions about diet, supplements or general health."
+    },
+    "intro": {
+      "title": "Questions about nutrition?",
+      "description": "Ask our AI agent and get clear answers instantly. Fighting misinformation, one question at a time.",
+      "disclaimer": "Note: This AI agent provides information only. For personalized advice, consult a qualified health professional.",
+      "profileAlt": "Nutr-AI Agent",
+      "profileImage": "/static/logo-dok2u.png"
+    },
+    "suggestions": {
+      "nutrition": {
+        "title": "🥗 Nutrition",
+        "description": "Dietary advice and nutrition"
+      },
+      "supplements": {
+        "title": "💊 Supplements",
+        "description": "Questions about supplements and their use"
+      },
+      "training": {
+        "title": "🏋️ Training",
+        "description": "Performance and sports recovery"
+      },
+      "health": {
+        "title": "💡 Health",
+        "description": "General wellness and lifestyle habits"
+      }
+    },
+    "input": {
+      "placeholder": "Ask me a question about nutrition...",
+      "sendButton": "Send",
+      "voiceButton": "Record voice message",
+      "disclaimer": "⚠️ May contain errors. Does not replace professional advice."
+    }
+  }
+}
