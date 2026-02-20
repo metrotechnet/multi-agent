@@ -2,6 +2,23 @@
 
 This directory contains all knowledge bases for the IMX Multi-Agent system. Each knowledge base is a separate folder containing documents, transcripts, and the corresponding ChromaDB vector database.
 
+## Quick Start: Create New Agent
+
+The fastest way to create a new agent:
+
+```bash
+# 1. Copy example configuration
+cp ../agent-config.example.json my-agent-config.json
+
+# 2. Edit configuration with your agent details
+nano my-agent-config.json
+
+# 3. Run creation script
+python ../core/create_agent.py my-agent-config.json
+```
+
+**📖 See [AGENT_CREATION.md](../AGENT_CREATION.md) for complete guide.**
+
 ## Structure
 
 ```

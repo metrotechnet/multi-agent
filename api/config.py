@@ -68,19 +68,16 @@ def get_config(agent: Optional[str] = None, access_key: Optional[str] = None):
             agent_info = get_agent_by_id(agent)
             if not agent_info:
                 return {"error": "agent not found"}
-        
-        # Load agent-specific configuration
-        agent_config_path = None
-        # Load shared configuration
-        if agent == "common":
-            agent_config_path = PROJECT_ROOT / "knowledge-bases" / "common" / "config.json"
-        elif agent == "nutria":
-            agent_config_path = PROJECT_ROOT / "knowledge-bases" / "nutria" / "config.json"
-        elif agent == "translator":
-            agent_config_path = PROJECT_ROOT / "knowledge-bases" / "translator" / "config.json"
+            
+            # Get configPath from agent info
+            config_path = agent_info.get("configPath")
+            if not config_path:
+                return {"error": "agent config path not found"}
+            
+            agent_config_path = PROJECT_ROOT / config_path / "config.json"
         else:
-            # Unknown agent, return error
-            return {"error": "agent not found"}
+            # Load common agent configuration
+            agent_config_path = PROJECT_ROOT / "knowledge-bases" / "common" / "config.json"
         
         # Load and merge agent config
         if agent_config_path and agent_config_path.exists():

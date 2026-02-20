@@ -7,6 +7,7 @@ A multi-agent AI assistant platform. Features a **Document Assistant** powered b
 - **🤖 Multi-Agent Architecture**: Switch between agents from a unified interface
   - **Assistant Nutrition**: RAG-based Q&A over indexed documents and transcripts
   - **Traducteur**: Real-time text & audio translation across 27 languages
+  - **Create Your Own**: Automated agent creation from configuration files
 - **🎬 Automated Content Pipeline**: Process files from Google Drive — download, transcribe (Whisper), extract, chunk, and index
 - **🔍 Vector Search**: ChromaDB for semantic retrieval over chunked documents
 - **🎙️ Speech-to-Text**: OpenAI Whisper integration for audio transcription and translation
@@ -43,6 +44,7 @@ imx-multi-agent/
 │   ├── query_chromadb.py     # ChromaDB vector search + LLM streaming (OpenAI + Gemini)
 │   ├── translate.py          # Translation module (text + audio via Whisper/GPT/Gemini)
 │   ├── update_gdrive.py      # Pipeline: Google Drive → transcribe → index
+│   ├── create_agent.py       # Agent creation script (automated setup from config)
 │   ├── refusal_engine.py     # Pattern-based refusal for off-topic questions
 │   └── __init__.py           # Core module init
 ├── scripts/
@@ -93,6 +95,8 @@ imx-multi-agent/
 ├── serve_frontend.py         # Custom frontend server (serves index.html at root)
 ├── startup.sh                # Container startup script
 ├── .env                      # Environment variables (not in git)
+├── agent-config.example.json # Example configuration for creating agents
+├── AGENT_CREATION.md         # Agent creation guide and reference
 └── README.md                 # This file
 ```
 
@@ -193,7 +197,60 @@ curl -X POST http://localhost:8080/update?agent=nutria
 
 See [GDRIVE_SETUP.md](GDRIVE_SETUP.md) for Google Drive service account configuration.
 
-### Run the Application
+## 🤖 Creating Custom Agents
+
+Create a new agent with automated setup:
+
+### 1. Prepare Configuration
+
+```bash
+# Copy example configuration
+cp agent-config.example.json my-agent-config.json
+
+# Edit with your agent details
+nano my-agent-config.json
+```
+
+### 2. Run Creation Script
+
+```bash
+python core/create_agent.py my-agent-config.json
+```
+
+This will:
+- ✅ Create agent folder structure
+- ✅ Copy and process documents (PDF, DOCX, TXT, JSON)
+- ✅ Create transcripts from all documents automatically
+- ✅ Transcribe audio files using Whisper
+- ✅ Index everything to ChromaDB
+- ✅ Register agent in agents.json
+
+### 3. Add Logo (Optional)
+
+```bash
+cp my-logo.png static/logos/logo-my-agent.png
+```
+
+### 4. Restart & Test
+
+Restart the backend server and your agent will appear in the interface.
+
+**📖 See [AGENT_CREATION.md](AGENT_CREATION.md) for complete guide and configuration reference.**
+
+## 🏗️ Manual Knowledge Base Setup
+
+If you prefer manual setup or need to customize an existing agent:
+
+### Create New Knowledge Base
+
+1. Copy the template:
+   ```bash
+   cp -r knowledge-bases/template-agent knowledge-bases/my-custom-agent
+   ```
+
+2. Edit `config.json` and `prompts.json` for your use case
+
+3. Register the agent in `agents.json`
 
 #### Option 1: Start Both Servers (Recommended)
 
